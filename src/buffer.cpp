@@ -1,30 +1,66 @@
-#include <queue>
+#include <stdint.h>
+#include <deque>
 #include <cassert>
-#include <pthread.h>
+#include <signal.h>
 
 #include "buffer.h"
 #include "flit.h"
 
-Buffer::Buffer(uint32_t max_flits) {
-	this.queue = new std::queue<Flit*>;
-	this.max_flits = max_flits;
-	this.status = NOT_FULL;
-	pthread_mutex_init(&this.buffer_mutex);
+Buffer::Buffer(uint32_t max_capacity) {
+	this->queue = new std::deque<Flit*>;
+	this->max_capacity = max_capacity;
+	this->status = EMPTY;
+}
+
+void Buffer::update_status() {
+	if (this->queue->empty()) {
+		this->status = EMPTY;
+	}
+	else if (this->queue->size() == this->max_capacity) {
+		this->status = FULL;
+	}
+	else {
+		this->status = NOT_FULL;
+	}
 }
 
 bool Buffer::insert_flit(Flit* flit) {
 	bool is_successful = false;
-	if (this.status == NOT_FULL) {
+	if (this->status != FULL) {
 		is_successful = true;
-		this.queue->push(flit);
-		this.state = this.queue->size() == this.max_flits ? FULL : NOT_FULL;
+		this->queue->push_back(flit);
 	}
-	return is_sucessful;
+	this->update_status();
+	return is_successful;
 }
 
 Flit* Buffer::remove_flit() {
-	assert(this.queue->size() > 0);
-	Flit* flit = this.queue->pop();
-	this.state = NOT_FULL;
+	assert(!this->queue->empty());
+	Flit* flit = this->queue->front();
+	this->queue->pop_front();
+	this->update_status();
 	return flit;
+}
+
+Flit* Buffer::peek_flit() {
+	Flit* flit = this->queue->front();
+	return flit;
+}
+
+bool Buffer::is_not_full () {
+	this->update_status();
+	return this->status == NOT_FULL;
+}
+
+bool Buffer::is_empty () {
+	this->update_status();
+	return this->status == EMPTY;
+}
+
+uint32_t Buffer::occupied_size() {
+	return (uint32_t)this->queue->size();
+}
+
+uint32_t Buffer::total_size() {
+	return this->max_capacity;
 }

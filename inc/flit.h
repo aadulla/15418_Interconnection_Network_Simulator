@@ -1,48 +1,56 @@
-#include <bitset>
+#ifndef FLIT_H
+#define FLIT_H
 
-extern uint32_t flit_width;
+#include <stdint.h>
+
+typedef enum { HEAD, DATA, TAIL } FLIT_TYPE;
 
 class Flit {
 
-}
-
-class Head_Flit : public Flit {
-
-private:
-	uint32_t dest;
-	uint32_t packet_num;
-	uint32_t num_flits_in_packet
+public:
+	uint32_t flit_id;
+	uint32_t packet_id;
+	uint32_t message_id;
+	uint32_t num_packets;
+	FLIT_TYPE type;
 
 public:
-	Head_Flit(uint32_t dest, uint32_t packet_num, num_flits_in_packet);
-	uint32_t get_dest();
-	uint32_t get_packet_num();
-	uint32_t get_num_flits_in_packet();
+	Flit(uint32_t flit_id, uint32_t packet_id, uint32_t message_id, uint32_t num_packets, FLIT_TYPE type);
 
-}
+};
+
+class Border_Flit : public Flit {
+
+public:
+	uint32_t source;
+	uint32_t dest;
+
+public:
+	Border_Flit(uint32_t flit_id, uint32_t packet_id, uint32_t message_id, uint32_t num_packets, FLIT_TYPE type, uint32_t source, uint32_t dest);
+
+};
+
+class Head_Flit : public Border_Flit {
+
+public:
+	uint32_t distance;
+	Head_Flit(uint32_t flit_id, uint32_t packet_id, uint32_t message_id, uint32_t num_packets, uint32_t source, uint32_t dest);
+	void increment_distance();
+
+};
+
+class Tail_Flit : public Border_Flit {
+
+public:
+	Tail_Flit(uint32_t flit_id, uint32_t packet_id, uint32_t message_id, uint32_t num_packets, uint32_t source, uint32_t dest);
+
+};
 
 class Data_Flit : public Flit {
 
-private:
-	uint32_t flit_num;
-
 public:
-	Data_Flit(uint32_t flit_num);
-	uint32_t get_flit_num();
+	Data_Flit(uint32_t flit_id, uint32_t packet_id, uint32_t message_id, uint32_t num_packets);
 
-}
+};
 
-class Tail_Flit : public Flit {
-
-private:
-	uint32_t dest;
-	uint32_t packet_num;
-	uint32_t num_flits_in_packet;
-
-public:
-	Tail_Flit(uint32_t dest, uint32_t packet_num, uint32_t num_flits_in_packet);
-	uint32_t get_dest();
-	uint32_t get_packet_num();
-	uint32_t get_num_flits_in_packet();
-
-}
+#endif /* FLIT_H */

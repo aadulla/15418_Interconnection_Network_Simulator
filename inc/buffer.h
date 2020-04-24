@@ -1,27 +1,37 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-#include <queue>
-#include <bitset>
-#include <pthread.h>
+#include <stdint.h>
+#include <deque>
+#include <iterator>
 
 #include "flit.h"
 
-enum BUFFER_CAPACITY_STATUS { NOT_FULL, FULL };
+typedef enum { EMPTY, NOT_FULL, FULL } BUFFER_STATUS;
 
 class Buffer {
 
 private:
-	uint32_t max_flits;
-	std::queue<Flit*>* queue;
-	BUFFER_STATUS capacity_status;
-	pthread_mutex_t buffer_mutex;
+	BUFFER_STATUS status;
+	typedef typename std::deque<Flit*>::iterator iterator;
 
 public:
-	Buffer(uint32_t max_flits);
+	std::deque<Flit*>* queue;
+	uint32_t max_capacity;
+	Buffer(uint32_t max_capacity);
+	void update_status();
 	bool insert_flit(Flit* flit);
 	Flit* remove_flit();
+	Flit* peek_flit();
+	uint32_t occupied_size();
+	uint32_t total_size();
+	bool is_not_full();
+	bool is_empty();
 
-}
+
+	iterator begin() { return queue->begin(); }
+	iterator end() { return queue->end(); }
+
+};
 
 #endif /* BUFFER_H */
