@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <omp.h>
 
 #include "flow_control_algorithms.h"
 #include "routing_algorithms.h"
@@ -18,6 +19,19 @@ typedef struct _IO_Channel {
 	Channel* input_channel;
 	Channel* output_channel;
 } IO_Channel;
+
+class Flit_Info_To_Router_ID_Cache {
+
+private:
+	std::map<Flit_Info*, uint32_t, flit_info_comp>* flit_info_to_router_id_map;
+	omp_lock_t lock;
+
+public:
+	Flit_Info_To_Router_ID_Cache();
+	void insert(Flit_Info* flit_info, uint32_t next_dest_router_id);
+	void erase(Flit_Info* flit_info);
+	uint32_t find(Flit_Info* flit_info);
+};
 
 class Internal_Info_Summary {
 
@@ -51,6 +65,8 @@ public:
 
 	Node(uint32_t node_id, void* network_id, uint32_t num_channels, uint32_t num_neighbors, uint32_t max_buffer_capacity, NODE_TYPE type);
 	virtual void init_connection(Node* node, Channel* input_channel, Channel* output_channel) {};
+	virtual void tx() {};
+	virtual void rx() {};
 
 };
 
@@ -62,12 +78,13 @@ protected:
 public:
 	uint32_t num_virtual_channels;
 	Routing_Func routing_func;
-	TX_Flow_Control_Func tx_flow_control_func;
-	RX_Flow_Control_Func rx_flow_control_func;
+	Flow_Control_Func flow_control_func;
+	FLOW_CONTROL_GRANULARITY flow_control_granularity;
 	std::map<Channel*, Buffer**>* input_channel_to_buffers_map;
 	std::map<Router*, std::vector<IO_Channel*>*>* neighbor_to_io_channels_map;
-	std::map<Flit_Info*, uint32_t, flit_info_comp>* flit_info_to_router_id_map;
+	Flit_Info_To_Router_ID_Cache* flit_info_to_router_id_cache;
 	Internal_Info_Summary* internal_info_summary;
+
 
 	Router(uint32_t node_id, 
 		   void* network_id,
@@ -76,16 +93,19 @@ public:
 		   uint32_t max_buffer_capacity, 
 		   uint32_t num_virtual_channels, 
 		   Routing_Func routing_func,
-		   TX_Flow_Control_Func tx_flow_control_func,
-		   RX_Flow_Control_Func rx_flow_control_func);
+		   Flow_Control_Func flow_control_func,
+		   FLOW_CONTROL_GRANULARITY flow_control_granularity);
 	void init_connection(Node* node, Channel* input_channel, Channel* output_channel);
 	std::vector<IO_Channel*>* get_io_channel_vec(uint32_t neighbor_router_id);
 	void update_internal_info_summary();
+	void erase_cached_routing(uint32_t message_id, uint32_t packet_id);
 	uint32_t get_buffer_space_occupied();
 	uint32_t get_buffer_space_total();
 	uint32_t get_num_failed_transmissions();
 	void clear_internal_info_summary();
 	void print();
+	void tx();
+	void rx();
 
 };
 
@@ -142,8 +162,8 @@ public:
 					 uint32_t max_buffer_capacity, 
 					 uint32_t num_virtual_channels, 
 					 Routing_Func routing_func,
-					 TX_Flow_Control_Func tx_flow_control_func,
-					 RX_Flow_Control_Func rx_flow_control_func);
+				     Flow_Control_Func flow_control_func,
+				     FLOW_CONTROL_GRANULARITY flow_control_granularity);
 	void init_connection(Node* node, Channel* input_channel, Channel* output_channel);
 	void init_processor_connection(Processor* processor, Channel* input_channel, Channel* output_channel);
 };

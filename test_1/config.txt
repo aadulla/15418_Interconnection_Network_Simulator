@@ -15,7 +15,7 @@ Number of Data Flits Per Packet: 1
 Routing Algorithm: Mesh YX
 
 /* Flow Control Algorithm */
-Flow Control Algorithm: Store Forward
+Flow Control Algorithm: Cut Through
 Flow Control Granularity: Packet
 
 /* Simulator Parameters */

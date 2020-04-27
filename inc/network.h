@@ -59,8 +59,8 @@ public:
 				 uint32_t router_buffer_capacity, 
 				 uint32_t num_virtual_channels,
 				 Routing_Func routing_func, 
-				 TX_Flow_Control_Func tx_flow_control_func, 
-				 RX_Flow_Control_Func rx_flow_control_func);
+				 Flow_Control_Func tx_flow_control_func, 
+				 FLOW_CONTROL_GRANULARITY flow_control_granularity);
 	void print();
 
 };

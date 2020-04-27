@@ -27,24 +27,31 @@ class Channel {
 private:
 	Node* source;
 	Node* dest;
+	Buffer** buffer_lst;
+	uint32_t num_buffers;
 
 public:
 	uint32_t channel_id;
 	Transmission_State* transmission_state; 
 	
 	Channel (Node* source, Node* dest);
+	void init_buffer_lst (Buffer** buffer_lst, uint32_t num_buffers);
 	void unlock();
 	void lock();
 	bool is_locked_for_flit(Flit* flit);
-	bool is_unlocked_for_flit(Flit* flit);
+	bool is_unlocked();
+	bool is_dest_buffer_reserved_for_flit(Flit* flit);
+	bool is_dest_buffer_reserved_for_flit_and_full(Flit* flit);
+	bool is_dest_buffer_unreserved();
 	bool is_open_for_transmission();
 	bool is_closed_for_transmission();
 	void reset_transmission_state();
 	void propose_transmission(Buffer* tx_buffer);
 	FLIT_TYPE execute_transmission(Buffer* rx_buffer);
 	void fail_transmission();
-	bool is_failed_transmission();
 	void clear_transmission_status();
+	bool is_failed_transmission();
+	bool is_successful_transmission();
 };
 
 #endif /* CHANNEL_H */

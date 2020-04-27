@@ -5,7 +5,9 @@
 #include <vector>
 #include <string>
 #include <signal.h>
-#include <atomic>
+#include <omp.h>
+#include <stdlib.h>
+#include <algorithm>
 
 #include "routing_algorithms.h"
 #include "node.h"
@@ -17,7 +19,31 @@ extern uint32_t num_data_flits_per_packet;
 extern uint32_t global_clock;
 extern Message_Transmission_Info** global_message_transmission_info;
 
-extern std::atomic<int> flits_in_network;
+Flit_Info_To_Router_ID_Cache::Flit_Info_To_Router_ID_Cache () {
+	this->flit_info_to_router_id_map = new std::map<Flit_Info*, uint32_t, flit_info_comp>;
+	omp_init_lock(&this->lock);
+}
+
+void Flit_Info_To_Router_ID_Cache::insert (Flit_Info* flit_info, uint32_t next_dest_router_id) {
+	omp_set_lock(&this->lock);
+	this->flit_info_to_router_id_map->insert({flit_info, next_dest_router_id});
+	omp_unset_lock(&this->lock);
+}
+
+void Flit_Info_To_Router_ID_Cache::erase (Flit_Info* flit_info) {
+	omp_set_lock(&this->lock);
+	auto itr = this->flit_info_to_router_id_map->find(flit_info);
+	assert(itr != this->flit_info_to_router_id_map->end());
+	delete(itr->first);
+	this->flit_info_to_router_id_map->erase(itr);
+	omp_unset_lock(&this->lock);
+}
+
+uint32_t Flit_Info_To_Router_ID_Cache::find (Flit_Info* flit_info) {
+	auto itr = this->flit_info_to_router_id_map->find(flit_info);
+	assert(itr != this->flit_info_to_router_id_map->end());
+	return itr->second; 
+}
 
 Internal_Info_Summary::Internal_Info_Summary () {
 	this->message_id_to_packet_id_set_map = new std::map<uint32_t, std::set<uint32_t>*>;
@@ -70,8 +96,13 @@ void Internal_Info_Summary::insert (Buffer* buffer, uint32_t message_id, uint32_
 
 void Internal_Info_Summary::clear () {
 	this->message_id_to_packet_id_set_map->clear();
-	for (auto itr=this->buffer_to_flit_info_set_map->begin(); itr != this->buffer_to_flit_info_set_map->end(); itr++) {
-		itr->second->clear();
+	for (auto itr_buffer=this->buffer_to_flit_info_set_map->begin(); itr_buffer != this->buffer_to_flit_info_set_map->end(); itr_buffer++) {
+		std::set<Flit_Info*, flit_info_comp>* flit_info_set = itr_buffer->second;
+		for (auto itr_flit_info = flit_info_set->begin(); itr_flit_info != flit_info_set->end(); itr_flit_info++) {
+			Flit_Info* flit_info = *itr_flit_info;
+			delete(flit_info);
+		}
+		flit_info_set->clear();
 	}
 	this->buffer_space_occupied = 0;
 	this->buffer_space_total = 0;
@@ -121,6 +152,10 @@ void Processor::init_router_connection (Router* router, Channel* input_channel, 
 	this->router = router;
 	this->router_input_channel = input_channel;
 	this->router_output_channel = output_channel;
+	// make fake buffer lst
+	Buffer** buffer_lst = new Buffer*[1];
+	buffer_lst[0] = this->router_buffer;
+	this->router_input_channel->init_buffer_lst(buffer_lst, 1);
 }
 
 void Processor::inject_message(Message* message) {
@@ -128,15 +163,14 @@ void Processor::inject_message(Message* message) {
 		Packet* packet = message->packet_lst[i];
 		Head_Flit* head_flit = packet->head;
 		this->injection_buffer->insert_flit(head_flit);
-		this->num_flits_transmitted++;
 		for (uint32_t j=0; j < num_data_flits_per_packet; j++) {
 			Flit* data_flit = packet->payload[j];
 			this->injection_buffer->insert_flit(data_flit);
-			this->num_flits_transmitted++;
 		}
 		Tail_Flit* tail_flit = packet->tail;
 		this->injection_buffer->insert_flit(tail_flit);
-		this->num_flits_transmitted++;
+		delete(packet->payload);
+		delete(packet);
 	}
 }
 
@@ -149,13 +183,15 @@ void Processor::tx () {
 			this->inject_message(message);
 			this->transmitted_messages_vec->push_back(message->message_id);
 			global_message_transmission_info[message->message_id]->tx_time = (int)global_clock;
+			
+			delete(message->packet_lst);
+			delete(message);
 			this->tx_message_vec->erase(itr);
 		}
 	}
 
 	// if injection buffer is not empty, propose transmission on router output channel
 	if (!this->injection_buffer->is_empty() && this->router_output_channel->is_open_for_transmission()) {
-		this->transmit_message_flag = true;
 		this->router_output_channel->propose_transmission(this->injection_buffer);
 	}
 }
@@ -180,13 +216,20 @@ void Processor::rx () {
 		auto itr = this->rx_message_id_to_num_flits_map->find(flit->message_id);
 		assert(itr != this->rx_message_id_to_num_flits_map->end());
 		itr->second--;
+
 		// check if we received the entire message
 		if (itr->second == 0) {
 			this->received_messages_vec->push_back(flit->message_id);
 			global_message_transmission_info[flit->message_id]->rx_time = (int)global_clock;
 		}
 
-		else if (itr->second < 0) assert(false);
+		delete(flit);
+	}
+
+	// updated tx status
+	if (this->router_output_channel->is_successful_transmission()) {
+		this->transmit_message_flag = true;
+		this->num_flits_transmitted++;
 	}
 }
 
@@ -209,17 +252,17 @@ Router::Router (uint32_t node_id,
 				uint32_t max_buffer_capacity,
 				uint32_t num_virtual_channels,
 				Routing_Func routing_func,
-				TX_Flow_Control_Func tx_flow_control_func,
-				RX_Flow_Control_Func rx_flow_control_func) :
+			    Flow_Control_Func flow_control_func,
+			    FLOW_CONTROL_GRANULARITY flow_control_granularity) :
 Node(node_id, network_id, num_channels, num_neighbors, max_buffer_capacity, ROUTER) {
 
 	this->num_virtual_channels = num_virtual_channels;
 	this->routing_func = routing_func;
-	this->tx_flow_control_func = tx_flow_control_func;
-	this->rx_flow_control_func = rx_flow_control_func;
+	this->flow_control_func = flow_control_func;
+	this->flow_control_granularity = flow_control_granularity;
 	this->input_channel_to_buffers_map = new std::map<Channel*, Buffer**>;
 	this->neighbor_to_io_channels_map = new std::map<Router*, std::vector<IO_Channel*>*>;
-	this->flit_info_to_router_id_map = new std::map<Flit_Info*, uint32_t, flit_info_comp>;
+	this->flit_info_to_router_id_cache = new Flit_Info_To_Router_ID_Cache;
 	this->internal_info_summary = new Internal_Info_Summary;
 }
 
@@ -238,6 +281,7 @@ void Router::init_router_connection (Router* neighbor, Channel* input_channel, C
 		this->internal_info_summary->init_buffer_in_map(new_buffer);
 	}
 	this->input_channel_to_buffers_map->insert({input_channel, input_channel_buffers});
+	input_channel->init_buffer_lst(input_channel_buffers, this->num_virtual_channels);
 
 	// add to neighbor_to_io_channels_map
 	IO_Channel* neighbor_io_channel = new IO_Channel;
@@ -275,6 +319,169 @@ std::vector<IO_Channel*>* Router::get_io_channel_vec(uint32_t neighbor_router_id
 	// should never come here
 	raise(SIGTRAP);
 	assert(false);
+}
+
+void Router::tx () {
+	// loop through all input channels
+	for (auto itr=this->input_channel_to_buffers_map->begin(); itr != this->input_channel_to_buffers_map->end(); itr++) {
+
+		// loop through all buffers
+		Buffer** buffers = itr->second;
+
+		// create a vector of numbers in range(num_virtual_channels) and then shuffle so we randomize
+		// the order of looking at buffers and thus the types of flits
+		std::vector<uint32_t> buffer_order;
+		for (uint32_t i=0; i < this->num_virtual_channels; i++) {
+			buffer_order.push_back(i);
+		}
+		random_shuffle(buffer_order.begin(), buffer_order.end());
+
+		for (auto itr_buffer_idx=buffer_order.begin(); itr_buffer_idx != buffer_order.end(); itr_buffer_idx++) {
+			Buffer* buffer = buffers[*itr_buffer_idx];
+			if (buffer->is_empty()) continue;
+
+			Flit* flit = buffer->peek_flit();
+
+			// determine where to route next flit in buffer to
+			uint32_t next_dest_router_id = (*(this->routing_func))(flit, 
+																   this->node_id, 
+																   this->network_id,
+																   this->flit_info_to_router_id_cache);
+
+			bool is_proposed = false;
+			bool is_failed = false;
+			std::vector<IO_Channel*>* io_channel_vec = this->get_io_channel_vec(next_dest_router_id);
+
+			for (auto itr_io_channel=io_channel_vec->begin(); itr_io_channel != io_channel_vec->end(); itr_io_channel++) {
+				Channel* output_channel = (*itr_io_channel)->output_channel;
+				bool is_open_for_transmission = output_channel->is_open_for_transmission();
+
+				bool can_propose;
+				// if granularity is packet, then check if this channel is locked
+				if (this->flow_control_granularity == PACKET) can_propose = output_channel->is_locked_for_flit(flit);
+				// if granuliary is flit, then check if there is a dest buffer reserved for it
+				else if (this->flow_control_granularity == FLIT) {
+					can_propose = output_channel->is_dest_buffer_reserved_for_flit(flit);
+					is_failed = output_channel->is_dest_buffer_reserved_for_flit_and_full(flit);
+					if (is_failed == true) break;
+				}
+				// should never come here
+				else assert(false);
+
+				bool should_propose = (*(this->flow_control_func))(flit, buffer);
+
+				if (is_open_for_transmission && can_propose && should_propose) {
+					output_channel->propose_transmission(buffer);
+					is_proposed = true;
+
+					// if granularity is packet and if we are transmitting a tail flit, we need to unlock channel
+					if (this->flow_control_granularity == PACKET && flit->type == TAIL) output_channel->unlock();
+
+					break;
+				}
+			}
+
+			// check if the flit has already been proposed for tranmission on an ouput channel
+			if (is_proposed == false && is_failed == false) {
+				for (auto itr_io_channel=io_channel_vec->begin(); itr_io_channel != io_channel_vec->end(); itr_io_channel++) {
+					Channel* output_channel = (*itr_io_channel)->output_channel;
+					bool is_open_for_transmission = output_channel->is_open_for_transmission();
+
+					bool can_propose;
+					// if granularity is packet, then check if this channel is locked
+					if (this->flow_control_granularity == PACKET) can_propose = output_channel->is_unlocked();
+					// if granuliary is flit, then check if there is a dest buffer reserved for it
+					else if (this->flow_control_granularity == FLIT) can_propose = output_channel->is_dest_buffer_unreserved();
+					// should never come here
+					else assert(false);
+
+					bool should_propose = (*(this->flow_control_func))(flit, buffer);
+
+					if (is_open_for_transmission && can_propose && should_propose) {
+						output_channel->propose_transmission(buffer);
+						is_proposed = true;
+
+						// if granularity is packet and if we are transmitting a Head flit, we need to unlock channel
+						if (this->flow_control_granularity == PACKET && flit->type == HEAD) output_channel->lock();
+
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+void Router::rx() {
+	// loop through all input channels
+	for (auto itr=this->input_channel_to_buffers_map->begin(); itr != this->input_channel_to_buffers_map->end(); itr++) {
+		Channel* input_channel = itr->first;
+		// check if channel has a pending transmission
+		if (input_channel->is_open_for_transmission()) continue;
+
+		uint32_t proposed_message_id = input_channel->transmission_state->message_id;
+		uint32_t proposed_packet_id = input_channel->transmission_state->packet_id;
+
+		Buffer** buffers = itr->second;
+		bool is_executed = false;
+		bool is_failed = false;
+
+		// check if there is a buffer already holding this flit info 
+		for (uint32_t i=0; i < this->num_virtual_channels; i++) {
+			Buffer* buffer = buffers[i];
+
+			// only look at buffers which are reserved for this flit
+			if (buffer->is_reserved_for_flit(proposed_message_id, proposed_packet_id)) {
+				bool is_not_full = buffer->is_not_full();
+				bool is_empty = buffer->is_empty();
+				if (is_not_full || is_empty) {
+					FLIT_TYPE flit_type = input_channel->execute_transmission(buffer);
+					assert(flit_type != HEAD);
+					if (flit_type == TAIL) buffer->unreserve_buffer();
+					is_executed = true;
+
+					// if granularity is packet and if we are transmitting a tail flit, we need to reset channel so no longer locked to packet
+					if (this->flow_control_granularity == PACKET and flit_type == TAIL) input_channel->reset_transmission_state();
+
+					break;
+				}
+				else {
+					is_failed = true;
+					break;
+				}
+			}
+		}
+
+		// check if flit has already been pulled in by executing transmission or failed transmission because buffer was full
+		if (is_executed == false && is_failed == false) {
+			// check if there is an open buffer
+			for (uint32_t i=0; i < this->num_virtual_channels; i++) {
+				Buffer* buffer = buffers[i];
+
+				if (buffer->is_unreserved()) {
+					bool is_not_full = buffer->is_not_full();
+					bool is_empty = buffer->is_empty();
+					if (is_not_full || is_empty) {
+						FLIT_TYPE flit_type = input_channel->execute_transmission(buffer);
+						assert(flit_type == HEAD);
+						if (flit_type == HEAD) buffer->reserve_buffer(proposed_message_id, proposed_packet_id);
+						is_executed = true;
+
+						break;
+					}
+				}
+			}
+		}
+
+		if (is_executed == false || is_failed == true) input_channel->fail_transmission();
+	}
+}
+
+void Router::erase_cached_routing (uint32_t message_id, uint32_t packet_id) {
+	Flit_Info flit_info;
+	flit_info.message_id = message_id;
+	flit_info.packet_id = packet_id;
+	this->flit_info_to_router_id_cache->erase(&flit_info);
 }
 
 void Router::update_internal_info_summary () {
@@ -315,9 +522,18 @@ Processor_Router::Processor_Router (uint32_t node_id,
 									uint32_t max_buffer_capacity, 
 									uint32_t num_virtual_channels,
 									Routing_Func routing_func,
-									TX_Flow_Control_Func tx_flow_control_func,
-									RX_Flow_Control_Func rx_flow_control_func) : 
-Router(node_id, network_id,num_channels, num_neighbors, max_buffer_capacity, num_virtual_channels, routing_func, tx_flow_control_func, rx_flow_control_func) {
+								    Flow_Control_Func flow_control_func,
+								    FLOW_CONTROL_GRANULARITY flow_control_granularity) : 
+Router(node_id, 
+	   network_id,
+	   num_channels, 
+	   num_neighbors, 
+	   max_buffer_capacity, 
+	   num_virtual_channels, 
+	   routing_func, 
+	   flow_control_func, 
+	   flow_control_granularity) {
+
 	this->type = PROCESSOR_ROUTER;
 }
 
@@ -336,6 +552,7 @@ void Processor_Router::init_processor_connection (Processor* processor, Channel*
 		this->internal_info_summary->init_buffer_in_map(new_buffer);
 	}
 	input_channel_to_buffers_map->insert({input_channel, this->processor_buffer_lst});
+	input_channel->init_buffer_lst(this->processor_buffer_lst, this->num_virtual_channels);
 
 	IO_Channel* processor_io_channel = new IO_Channel;
 	processor_io_channel->input_channel = input_channel;
@@ -378,6 +595,7 @@ void Router::print () {
 		printf("%d,", router->node_id);
 	}
 	printf("\n");
+	this->internal_info_summary->print();
 	printf("##############################\n");
 }
 

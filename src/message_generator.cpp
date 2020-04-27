@@ -127,20 +127,6 @@ void Message_Generator::random_message_node_distribution_generator () {
 		// create message
 		Message* message = new Message(message_size, i, source_processor_id, dest_processor_id);
 		this->update_tx_rx_data(message);
-
-		// // add message to tx_data_message_map
-		// auto itr_tx = this->processor_id_to_tx_message_data_map->find(source_processor_id);
-		// std::vector<Message*>* tx_message_vec = itr_tx->second;
-		// omp_set_lock(&(tx_message_data_map_locks[source_processor_id]));
-		// tx_message_vec->push_back(message);
-		// omp_unset_lock(&(tx_message_data_map_locks[source_processor_id]));
-
-		// // increment flit count in rx_data_message_map
-		// auto itr_rx = this->processor_id_to_rx_message_data_map->find(dest_processor_id);
-		// std::map<uint32_t, int>* rx_message_map = itr_rx->second;
-		// omp_set_lock(&(rx_message_data_map_locks[dest_processor_id]));
-		// rx_message_map->insert({i, num_flits});
-		// omp_unset_lock(&(rx_message_data_map_locks[dest_processor_id]));
 	}
 }
 
@@ -170,20 +156,6 @@ void Message_Generator::uniform_message_node_distribution_generator () {
 		// create message
 		Message* message = new Message(message_size, i, source_processor_id, dest_processor_id);
 		this->update_tx_rx_data(message);
-
-			// // add message to tx_data_message_map
-			// auto itr_tx = this->processor_id_to_tx_message_data_map->find(source_processor_id);
-			// std::vector<Message*>* message_vec = itr_tx->second;
-			// omp_set_lock(&(tx_message_data_map_locks[source_processor_id]));
-			// message_vec->push_back(message);
-			// omp_unset_lock(&(tx_message_data_map_locks[source_processor_id]));
-
-			// // increment flit count in rx_data_message_map
-			// auto itr_rx = this->processor_id_to_rx_message_data_map->find(dest_processor_id);
-			// std::map<uint32_t, int>* rx_message_map = itr_rx->second;
-			// omp_set_lock(&(rx_message_data_map_locks[dest_processor_id]));
-			// rx_message_map->insert({i, num_flits});
-			// omp_unset_lock(&(rx_message_data_map_locks[dest_processor_id]));
 	}
 }
 

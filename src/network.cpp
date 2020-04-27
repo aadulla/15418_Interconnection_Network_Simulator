@@ -2,6 +2,7 @@
 #include <math.h>
 #include <vector>
 #include <omp.h>
+#include <signal.h>
 
 #include "network.h"
 #include "flow_control_algorithms.h"
@@ -48,12 +49,12 @@ void Network::simulate () {
 	#pragma omp parallel for schedule(static)
 	for (uint32_t i=0; i < this->num_routers; i++) {
 		Router* router = this->router_lst[i];
-		(*(router->tx_flow_control_func))(router);
+		router->tx();
 	}
 	#pragma omp parallel for schedule(static)
 	for (uint32_t i=0; i < this->num_routers; i++) {
 		Router* router = this->router_lst[i];
-		(*(router->rx_flow_control_func))(router);
+		router->rx();
 	}
 	#pragma omp parallel for schedule(static)
 	for (uint32_t i=0; i < this->num_processors; i++) {
@@ -65,12 +66,6 @@ void Network::simulate () {
 		Router* router = this->router_lst[i];
 		router->update_internal_info_summary();
 	}
-	// #pragma omp parallel for schedule(static)
-	// for (uint32_t i=0; i < this->num_processors; i++) {
-	// 	Processor* processor = this->processor_lst[i];
-	// 	processor->dummy_update();
-	// }
-
 }
 
 
@@ -81,8 +76,8 @@ Mesh_Network::Mesh_Network (uint32_t num_processors,
 							uint32_t router_buffer_capacity, 
 							uint32_t num_virtual_channels,
 							Routing_Func routing_func, 
-							TX_Flow_Control_Func tx_flow_control_func, 
-							RX_Flow_Control_Func rx_flow_control_func) : 
+							Flow_Control_Func flow_control_func, 
+							FLOW_CONTROL_GRANULARITY flow_control_granularity) : 
 Network(num_processors, 
 		num_routers, 
 		input_buffer_capacity, 
@@ -128,8 +123,8 @@ Network(num_processors,
 																		  this->router_buffer_capacity, 
 																		  this->num_virtual_channels,
 																		  routing_func,
-																		  tx_flow_control_func,
-																		  rx_flow_control_func);
+																		  flow_control_func,
+																		  flow_control_granularity);
 			this->router_mesh[i][j] = new_processor_router;
 			this->router_lst[i*num_cols + j] = (Router*)new_processor_router;
 		}

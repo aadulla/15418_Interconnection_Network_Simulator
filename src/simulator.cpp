@@ -62,6 +62,7 @@ void Simulator::setup() {
 	this->config_parser->initialize_parameter_key("Number of Data Flits Per Packet");
 	this->config_parser->initialize_parameter_key("Routing Algorithm");
 	this->config_parser->initialize_parameter_key("Flow Control Algorithm");
+	this->config_parser->initialize_parameter_key("Flow Control Granularity");
 	this->config_parser->initialize_parameter_key("Number of Messages");
 	this->config_parser->initialize_parameter_key("Lower Message Size");
 	this->config_parser->initialize_parameter_key("Upper Message Size");
@@ -135,32 +136,47 @@ void Simulator::setup() {
 	// get network parameters
 	std::string network_type = this->config_parser->get_string_parameter_value("Network Type");
 	uint32_t num_routers = this->config_parser->get_int_parameter_value("Number of Routers");
-	std::string routing_algo = this->config_parser->get_string_parameter_value("Routing Algorithm");
-	std::string flow_control_algo = this->config_parser->get_string_parameter_value("Flow Control Algorithm");
+	std::string routing_algo_str = this->config_parser->get_string_parameter_value("Routing Algorithm");
+	std::string flow_control_algo_str = this->config_parser->get_string_parameter_value("Flow Control Algorithm");
+	std::string flow_control_granularity_str = this->config_parser->get_string_parameter_value("Flow Control Granularity");
 	uint32_t input_buffer_capacity = (uint32_t)((upper_message_size / packet_width) * (num_data_flits_per_packet + 2));
 	uint32_t router_buffer_capacity = this->config_parser->get_int_parameter_value("Router Buffer Capacity");
 	uint32_t num_virtual_channels = this->config_parser->get_int_parameter_value("Number of Virtual Channels");
 
 	// initialize routing functions
 	Routing_Func routing_func;
-	if (routing_algo.compare("Mesh XY") == 0) {
+	if (routing_algo_str.compare("Mesh XY") == 0) {
 		routing_func = &mesh_xy_routing;
 	}
-	// should never come here
-	else {
-		raise(SIGTRAP);
-		assert(false);
-	}
-
-	// initilize flow control functions
-	TX_Flow_Control_Func tx_flow_control_func;
-	RX_Flow_Control_Func rx_flow_control_func;
-	if (flow_control_algo.compare("Packet Store Forward") == 0) {
-		tx_flow_control_func = &packet_tx_store_forward;
-		rx_flow_control_func = &packet_rx_store_forward;
+	else if (routing_algo_str.compare("Mesh YX") == 0) {
+		routing_func = &mesh_yx_routing;
 	}
 	// should never come here
 	else assert(false);
+
+	// initilize flow control function
+	Flow_Control_Func flow_control_func;
+	if (flow_control_algo_str.compare("Cut Through") == 0) {
+		flow_control_func = &cut_through_flow_control;
+	}
+	else if (flow_control_algo_str.compare("Store Forward") == 0) {
+		flow_control_func = &store_forward_flow_control;
+	}
+	// should never come here
+	else assert(false);
+
+	// initilize flow control granularity
+	FLOW_CONTROL_GRANULARITY flow_control_granularity;
+	if (flow_control_granularity_str.compare("Packet") == 0) {
+		flow_control_granularity = PACKET;
+	}
+	else if (flow_control_granularity_str.compare("Flit") == 0) {
+		flow_control_granularity = FLIT;
+	}
+	// should never come here
+	else assert(false);
+
+
 
 	// initialize network
 	if (network_type.compare("Mesh") == 0) {
@@ -170,8 +186,8 @@ void Simulator::setup() {
 										 router_buffer_capacity,
 										 num_virtual_channels,
 										 routing_func, 
-										 tx_flow_control_func, 
-										 rx_flow_control_func);
+										 flow_control_func, 
+										 flow_control_granularity);
 	}
 	// should never come here
 	else assert(false);
@@ -236,6 +252,11 @@ void Simulator::update_over_time_metrics () {
 		sum_buffer_space_total += thread_buffer_space_total;
 	}
 
+	// printf("Num Transmitted %d\n", sum_tx_messages);
+	// printf("Num Received %d\n", sum_rx_messages);
+	printf("Num Flits in Network %d\n", sum_buffer_space_occupied);
+	// printf("\n");
+
 	this->tx_messages_over_time_vec->push_back(sum_tx_messages);
 	this->rx_messages_over_time_vec->push_back(sum_rx_messages);
 	this->failed_transmissions_over_time_vec->push_back(sum_num_failed_transmissions);
@@ -261,6 +282,7 @@ void Simulator::update_aggregate_metrics () {
 
 		#pragma omp atomic
 		this->total_message_latency += thread_message_latency;
+		#pragma omp atomic
 		this->total_message_distance += thread_message_distance;
 	}
 
@@ -281,17 +303,18 @@ void Simulator::simulate () {
 		global_clock++;
 		this->update_over_time_metrics();
 		this->update_simulation_status();
+		// raise(SIGTRAP);
 	}
 	printf("Finished Simulation!!!\n\n");
+	this->print_global_message_transmission_info();
 
 	printf("Starting Logging Stats...\n\n");
 	this->log_stats();
 	printf("Finished Logging Stats!!!\n\n");
 
-	printf("Total Clock Cycles: %d\n", global_clock);
-	// this->print_global_message_transmission_info();
 	this->update_aggregate_metrics();
 	this->print_aggregate_metrics();
+	printf("Total Simulation Time in Clock Cycles: %d\n", global_clock);
 
 
 }
@@ -329,13 +352,14 @@ void Simulator::log_stats () {
 void Simulator::print_global_message_transmission_info () {
 	printf("Global Clock Cycle %d\n", global_clock);
 	printf("\n");
-	printf("%-15s%-20s%-12s%-20s%-12s\n", "Message ID", "TX Processor ID", "TX Time", "RX Processor ID", "RX Time");
+	printf("%-15s%-25s%-20s%-12s%-20s%-12s\n", "Message ID", "Avg Packet Distance", "TX Processor ID", "TX Time", "RX Processor ID", "RX Time");
 	for (uint32_t i=0; i < this->message_generator->num_messages; i++) {
+		float avg_packet_distance = global_message_transmission_info[i]->avg_packet_distance;
 		uint32_t tx_processor_id = global_message_transmission_info[i]->tx_processor_id;
 		int tx_time = global_message_transmission_info[i]->tx_time;
 		uint32_t rx_processor_id = global_message_transmission_info[i]->rx_processor_id;
 		int rx_time = global_message_transmission_info[i]->rx_time;
-		printf("%-15d%-20d%-12d%-20d%-12d\n", i, tx_processor_id, tx_time, rx_processor_id, rx_time);
+		printf("%-15d%-25f%-20d%-12d%-20d%-12d\n", i, avg_packet_distance, tx_processor_id, tx_time, rx_processor_id, rx_time);
 	}
 	printf("\n\n");
 }
@@ -346,3 +370,38 @@ void Simulator::print_aggregate_metrics() {
 	printf("Average Throughput in Messages/Clock Cycles: %f\n", this->avg_message_throughput);
 	printf("Average Speed in Distance/Latency: %f\n", this->avg_message_distance/this->avg_message_latency);
 }
+
+// #include <unistd.h>
+// #include <ios>
+// #include <iostream>
+// #include <fstream>
+// #include <string>
+// using namespace std;
+// void mem_usage(double& vm_usage, double& resident_set) {
+//    vm_usage = 0.0;
+//    resident_set = 0.0;
+//    ifstream stat_stream("/proc/self/stat",ios_base::in); //get info from proc
+//    directory
+//    //create some variables to get info
+//    string pid, comm, state, ppid, pgrp, session, tty_nr;
+//    string tpgid, flags, minflt, cminflt, majflt, cmajflt;
+//    string utime, stime, cutime, cstime, priority, nice;
+//    string O, itrealvalue, starttime;
+//    unsigned long vsize;
+//    long rss;
+//    stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
+//    >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
+//    >> utime >> stime >> cutime >> cstime >> priority >> nice
+//    >> O >> itrealvalue >> starttime >> vsize >> rss; // don't care
+//    about the rest
+//    stat_stream.close();
+//    long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // for x86-64 is configured
+//    to use 2MB pages
+//    vm_usage = vsize / 1024.0;
+//    resident_set = rss * page_size_kb;
+// }
+// int main() {
+//    double vm, rss;
+//    mem_usage(vm, rss);
+//    cout << "Virtual Memory: " << vm << "\nResident set size: " << rss << endl;
+// }

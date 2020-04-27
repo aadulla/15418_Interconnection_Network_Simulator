@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 # test_dir_path = "/afs/andrew.cmu.edu/usr3/aadulla/private/15418/final_project/test_0/"
-test_dir_path = "C:/Users/Ashwin Adulla/Desktop/2019-2020/Spring/15-418/15418/final_project/test_0/"
+test_dir_path = "C:/Users/Ashwin Adulla/Desktop/2019-2020/Spring/15-418/15418/15418_Interconnection_Network_Simulator/test_0/"
 setup_clocks = 500
 filtered_len = 100
 
@@ -65,15 +65,15 @@ if __name__ == '__main__':
 	axs[0, 0].plot(clock_lst, tx_stats_lst)
 	axs[0, 0].set(xlabel="Clock Cyle Count", ylabel="Number of Messages Transmitted")
 
-	axs[1, 0].plot(clock_lst, rx_stats_lst)
+	axs[1, 0].plot(clock_lst, rx_stats_lst, 'tab:orange')
 	axs[1, 0].set(xlabel="Clock Cyle Count", ylabel="Number of Messages Received")
 
 
-	axs[0, 1].plot(clock_lst, failed_stats_lst)
+	axs[0, 1].plot(clock_lst, failed_stats_lst, 'tab:red')
 	axs[0, 1].set(xlabel="Clock Cyle Count", ylabel="Number of Contentions")
 
 
-	axs[1, 1].plot(clock_lst, buffer_stats_lst)
+	axs[1, 1].plot(clock_lst, buffer_stats_lst, 'tab:green')
 	axs[1, 1].set(xlabel="Clock Cyle Count", ylabel="Buffer Efficiency")
 
 	plt.show()

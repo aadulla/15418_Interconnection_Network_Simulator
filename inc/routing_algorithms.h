@@ -21,13 +21,26 @@ struct flit_info_comp {
 	}
 };
 
-typedef uint32_t (*Routing_Func)(Flit*, uint32_t, void*, std::map<Flit_Info*, uint32_t, flit_info_comp>*);
+class Flit_Info_To_Router_ID_Cache;
+
+typedef uint32_t (*Routing_Func)(Flit*, uint32_t, void*, Flit_Info_To_Router_ID_Cache*);
 
 uint32_t convert_topology_id_to_router_id(void* network_id);
 void* convert_router_id_to_topology_id(uint32_t router_id);
+int routing_cache_lookup(Flit* flit, 
+						 uint32_t curr_router_id,
+						 void* curr_network_id,
+						 Flit_Info_To_Router_ID_Cache* flit_info_to_router_id_cache);
 
 /* Non-Adaptive Routing Algorithms */
-uint32_t mesh_xy_routing(Flit* flit, uint32_t curr_router_id, void* curr_network_id, std::map<Flit_Info*, uint32_t, flit_info_comp>* flit_info_to_router_id_map);
+uint32_t mesh_xy_routing(Flit* flit, 
+						 uint32_t curr_router_id, 
+						 void* curr_network_id, 
+						 Flit_Info_To_Router_ID_Cache* flit_info_to_router_id_cache);
+uint32_t mesh_yx_routing(Flit* flit, 
+						 uint32_t curr_router_id, 
+						 void* curr_network_id, 
+						 Flit_Info_To_Router_ID_Cache* flit_info_to_router_id_cache);
 
 /* Adaptive Routing Algorithms */
 
