@@ -1,16 +1,33 @@
+import copy
 import matplotlib.pyplot as plt
-
-# test_dir_path = "/afs/andrew.cmu.edu/usr3/aadulla/private/15418/final_project/test_0/"
-test_dir_path = "C:/Users/Ashwin Adulla/Desktop/2019-2020/Spring/15-418/15418/15418_Interconnection_Network_Simulator/test_0/"
-setup_clocks = 500
-filtered_len = 100
+import pandas as pd
+import sys
+import os
 
 def get_data_paths(test_dir_path):
-	tx_stats_path = test_dir_path + "tx_stats.txt"
-	rx_stats_path = test_dir_path + "rx_stats.txt"
-	failed_stats_path = test_dir_path + "failed_stats.txt"
-	buffer_stats_path = test_dir_path + "buffer_stats.txt"
-	return tx_stats_path, rx_stats_path, failed_stats_path, buffer_stats_path
+	tx_stats_path = os.path.join(test_dir_path, "tx_stats.txt")
+	rx_stats_path = os.path.join(test_dir_path, "rx_stats.txt")
+	stalls_stats_path = os.path.join(test_dir_path, "stalls_stats.txt")
+	buffers_stats_path = os.path.join(test_dir_path, "buffers_stats.txt")
+	transmissions_stats_path = os.path.join(test_dir_path, "transmissions_stats.txt")
+	return tx_stats_path, rx_stats_path, stalls_stats_path, buffers_stats_path, transmissions_stats_path
+
+def extract_transmissions_data(data_file_path):
+	data_file = open(data_file_path)
+	data_lines = data_file.readlines()
+
+	headers = data_lines[0].split()
+	data_dict = dict()
+	for i, header in enumerate(headers):
+		headers[i] = header.lower()
+		data_dict.update({headers[i]:[]})
+
+	for data_line in data_lines[1:]:
+		for i, data in enumerate(data_line.split()):
+			data = int(data)
+			data_dict[headers[i]].append(data)
+
+	return data_dict
 
 def extract_data(data_file_path, data_type):
 	data_file = open(data_file_path)
@@ -26,55 +43,74 @@ def extract_data(data_file_path, data_type):
 	data_file.close()
 	return data_lst
 
-def filter_data(data_lst):
-	padding = len(data_lst)%filtered_len
-	for i in range(padding):
-		data_lst.append(0)
-
-	window_size = int(len(data_lst)/filtered_len)
-	filtered_data_lst = []
-	for i in range(filtered_len):
-		avg = sum(data_lst[i*window_size:(i+1)*window_size])/window_size
-		filtered_data_lst.append(avg)
-	return filtered_data_lst
-
-if __name__ == '__main__':
-	tx_stats_path, rx_stats_path, failed_stats_path, buffer_stats_path= get_data_paths(test_dir_path)
-
-	tx_stats_lst = extract_data(tx_stats_path, "int") 
-	rx_stats_lst = extract_data(rx_stats_path, "int") 
-	failed_stats_lst = extract_data(failed_stats_path, "int") 
-	buffer_stats_lst = extract_data(buffer_stats_path, "float") 
-	clock_lst = [i for i in range(len(tx_stats_lst))]
-
-	# setup_clocks = 5000
-	# tx_stats_lst = tx_stats_lst[setup_clocks:]
-	# rx_stats_lst = rx_stats_lst[setup_clocks:]
-	# failed_stats_lst = failed_stats_lst[setup_clocks:]
-	# buffer_stats_lst = buffer_stats_lst[setup_clocks:]
-	# clock_lst = clock_lst[setup_clocks:]
-
-	tx_stats_lst = filter_data(tx_stats_lst)
-	rx_stats_lst = filter_data(rx_stats_lst)
-	failed_stats_lst = filter_data(failed_stats_lst)
-	buffer_stats_lst = filter_data(buffer_stats_lst)
-	clock_lst = filter_data(clock_lst)
-
-	fig, axs = plt.subplots(2, 2)
-
-	axs[0, 0].plot(clock_lst, tx_stats_lst)
-	axs[0, 0].set(xlabel="Clock Cyle Count", ylabel="Number of Messages Transmitted")
-
-	axs[1, 0].plot(clock_lst, rx_stats_lst, 'tab:orange')
-	axs[1, 0].set(xlabel="Clock Cyle Count", ylabel="Number of Messages Received")
-
-
-	axs[0, 1].plot(clock_lst, failed_stats_lst, 'tab:red')
-	axs[0, 1].set(xlabel="Clock Cyle Count", ylabel="Number of Contentions")
-
-
-	axs[1, 1].plot(clock_lst, buffer_stats_lst, 'tab:green')
-	axs[1, 1].set(xlabel="Clock Cyle Count", ylabel="Buffer Efficiency")
-
+def plot_time_series(stats_df, rolling_window, x_label, y_label, title):
+	ax = stats_df.rolling(rolling_window).mean().plot()
+	ax.set(xlabel=x_label, ylabel=y_label, title=title)
+	fig = ax.get_figure()
+	fig.set_size_inches(11,8)
 	plt.show()
+
+def plot_kde(stats_df, x_low, x_high, bw, x_label, y_label, title):
+	ax = stats_df.plot(kind='kde', bw_method=bw)
+	ax.set(xlabel=x_label, ylabel=y_label, title=title)
+	ax.set_xbound(lower=x_low, upper=x_high)
+	fig = ax.get_figure()
+	fig.set_size_inches(11,8)
+	plt.show()
+
+def pad(data_dict):
+	max_len = 0
+	for key, data_stats in data_dict.items():
+		if max_len < len(data_stats): max_len = len(data_stats)
+	for key, data_stats in data_dict.items():
+		for i in range(len(data_stats), max_len, 1):
+			data_stats.append(0)
+
+def data_parser(test_dir_path_lst):
+	tx_stats_dict = dict()
+	rx_stats_dict = dict()
+	stalls_stats_dict = dict()
+	buffers_stats_dict = dict()
+	latency_stats_dict = dict()
+	size_stats_dict = dict()
+	distance_stats_dict = dict()
+
+	for test_dir_path in test_dir_path_lst:
+		tx_stats_path, rx_stats_path, stalls_stats_path, buffers_stats_path, transmissions_stats_path = get_data_paths(test_dir_path)
+		tx_stats = extract_data(tx_stats_path, "int") 
+		rx_stats = extract_data(rx_stats_path, "int") 
+		stalls_stats = extract_data(stalls_stats_path, "int")
+		buffers_stats = extract_data(buffers_stats_path, "float")
+		transmissions_data_dict = extract_transmissions_data(transmissions_stats_path)
+
+		tx_stats_dict.update({test_dir_path: tx_stats})
+		rx_stats_dict.update({test_dir_path: rx_stats})
+		stalls_stats_dict.update({test_dir_path: stalls_stats})
+		buffers_stats_dict.update({test_dir_path: buffers_stats})
+		latency_stats_dict.update({test_dir_path: transmissions_data_dict['latency']})
+		size_stats_dict.update({test_dir_path: transmissions_data_dict['size']})
+		distance_stats_dict.update({test_dir_path: transmissions_data_dict['distance']})
+
+	pad(tx_stats_dict)
+	pad(rx_stats_dict)
+	pad(stalls_stats_dict)
+	pad(buffers_stats_dict)
+
+	tx_stats_df = pd.DataFrame.from_dict(tx_stats_dict) 
+	rx_stats_df = pd.DataFrame.from_dict(rx_stats_dict) 
+	stalls_stats_df = pd.DataFrame.from_dict(stalls_stats_dict) 
+	buffers_stats_df = pd.DataFrame.from_dict(buffers_stats_dict) 
+	latency_stats_df = pd.DataFrame.from_dict(latency_stats_dict) 
+	size_stats_df = pd.DataFrame.from_dict(size_stats_dict) 
+	distance_stats_df = pd.DataFrame.from_dict(distance_stats_dict) 
+
+	global_stats_df_dict = {"tx": tx_stats_df,
+							"rx": rx_stats_df,
+							"stalls": stalls_stats_df,
+							"buffers": buffers_stats_df,
+							"latency": latency_stats_df,
+							"size": size_stats_df,
+							"distance": distance_stats_df}
+
+	return global_stats_df_dict
 

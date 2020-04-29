@@ -23,8 +23,10 @@ Simulator::Simulator(std::string test_path) {
 	this->config_file_path = test_path + "config.txt";
 	this->tx_stats_path = test_path + "tx_stats.txt";
 	this->rx_stats_path = test_path + "rx_stats.txt";
-	this->failed_stats_path = test_path + "failed_stats.txt";
-	this->buffer_stats_path = test_path + "buffer_stats.txt";
+	this->stalls_stats_path = test_path + "stalls_stats.txt";
+	this->buffers_stats_path = test_path + "buffers_stats.txt";
+	this->transmissions_stats_path = test_path + "transmissions_stats.txt";
+	this->aggregate_stats_path = test_path + "aggregate_stats.txt";
 
 	this->network = NULL;
 	this->message_generator = NULL;
@@ -34,13 +36,16 @@ Simulator::Simulator(std::string test_path) {
 
 	this->total_message_latency = 0;
 	this->total_message_distance = 0.0;
+	this->total_message_size = 0;
 	this->avg_message_latency = 0.0;
 	this->avg_message_distance = 0.0;
+	this->avg_message_size = 0;
 	this->avg_message_throughput = 0.0;
-	this->tx_messages_over_time_vec = new std::vector<uint32_t>;
-	this->rx_messages_over_time_vec = new std::vector<uint32_t>;
-	this->failed_transmissions_over_time_vec = new std::vector<uint32_t>;
-	this->buffer_efficiency_over_time_vec = new std::vector<float>;
+	this->avg_message_speed = 0.0;
+	this->tx_flits_over_time_vec = new std::vector<uint32_t>;
+	this->rx_flits_over_time_vec = new std::vector<uint32_t>;
+	this->stalls_over_time_vec = new std::vector<uint32_t>;
+	this->buffers_efficiency_over_time_vec = new std::vector<float>;
 }
 
 void Simulator::setup() {
@@ -80,7 +85,6 @@ void Simulator::setup() {
 	num_data_flits_per_packet = this->config_parser->get_int_parameter_value("Number of Data Flits Per Packet");
 
 	// get message generator parameters
-	uint32_t rng_seed = 15418;
 	uint32_t num_messages = this->config_parser->get_int_parameter_value("Number of Messages");
 	uint32_t num_processors = this->config_parser->get_int_parameter_value("Number of Processors");
 	uint32_t lower_message_size = this->config_parser->get_int_parameter_value("Lower Message Size");
@@ -125,8 +129,7 @@ void Simulator::setup() {
 	}
 
 	// initialize message generator
-	this->message_generator	= new Message_Generator(rng_seed,
-									  				num_messages,
+	this->message_generator	= new Message_Generator(num_messages,
 					 				  				num_processors,
 					  				  				lower_message_size, 
 					  				  				upper_message_size, 
@@ -150,6 +153,9 @@ void Simulator::setup() {
 	}
 	else if (routing_algo_str.compare("Mesh YX") == 0) {
 		routing_func = &mesh_yx_routing;
+	}
+	else if (routing_algo_str.compare("Mesh Adaptive") == 0) {
+		routing_func = &mesh_adaptive_routing;
 	}
 	// should never come here
 	else assert(false);
@@ -211,57 +217,57 @@ void Simulator::update_simulation_status () {
 }
 
 void Simulator::update_over_time_metrics () {
-	uint32_t sum_tx_messages = 0;
-	uint32_t sum_rx_messages = 0;
-	uint32_t sum_num_failed_transmissions = 0;
-	uint32_t sum_buffer_space_occupied = 0;
-	uint32_t sum_buffer_space_total = 0;
+	uint32_t sum_tx_flits = 0;
+	uint32_t sum_rx_flits = 0;
+	uint32_t sum_num_stalls = 0;
+	uint32_t sum_buffers_space_occupied = 0;
+	uint32_t sum_buffers_space_total = 0;
 
 	#pragma omp parallel 
 	{
-		uint32_t thread_tx_messages = 0;
-		uint32_t thread_rx_messages = 0;
-		uint32_t thread_num_failed_transmissions = 0;
-		uint32_t thread_buffer_space_occupied = 0;
-		uint32_t thread_buffer_space_total = 0;
+		uint32_t thread_tx_flits = 0;
+		uint32_t thread_rx_flits = 0;
+		uint32_t thread_num_stalls = 0;
+		uint32_t thread_buffers_space_occupied = 0;
+		uint32_t thread_buffers_space_total = 0;
 		
 		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->network->num_processors; i++) {
 			Processor* processor = this->network->processor_lst[i];
-			if (processor->did_transmit_message()) thread_tx_messages += 1;
-			if (processor->did_receive_message()) thread_rx_messages += 1;
+			if (processor->did_transmit_message()) thread_tx_flits += 1;
+			if (processor->did_receive_message()) thread_rx_flits += 1;
 		}
 
 		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->network->num_routers; i++) {
 			Router* router = this->network->router_lst[i];
-			thread_num_failed_transmissions += router->get_num_failed_transmissions();
-			thread_buffer_space_occupied += router->get_buffer_space_occupied();
-			thread_buffer_space_total += router->get_buffer_space_total();
+			thread_num_stalls += router->get_num_stalls();
+			thread_buffers_space_occupied += router->get_buffer_space_occupied();
+			thread_buffers_space_total += router->get_buffer_space_total();
 		}
 
 		#pragma omp atomic
-		sum_tx_messages += thread_tx_messages;
+		sum_tx_flits += thread_tx_flits;
 		#pragma omp atomic
-		sum_rx_messages += thread_rx_messages;
+		sum_rx_flits += thread_rx_flits;
 		#pragma omp atomic
-		sum_num_failed_transmissions += thread_num_failed_transmissions;
+		sum_num_stalls += thread_num_stalls;
 		#pragma omp atomic
-		sum_buffer_space_occupied += thread_buffer_space_occupied;
+		sum_buffers_space_occupied += thread_buffers_space_occupied;
 		#pragma omp atomic
-		sum_buffer_space_total += thread_buffer_space_total;
+		sum_buffers_space_total += thread_buffers_space_total;
 	}
 
-	// printf("Num Transmitted %d\n", sum_tx_messages);
-	// printf("Num Received %d\n", sum_rx_messages);
-	printf("Num Flits in Network %d\n", sum_buffer_space_occupied);
+	// printf("Num Transmitted %d\n", sum_tx_flits);
+	// printf("Num Received %d\n", sum_rx_flits);
+	// printf("Num Flits in Network %d\n", sum_buffers_space_occupied);
 	// printf("\n");
 
-	this->tx_messages_over_time_vec->push_back(sum_tx_messages);
-	this->rx_messages_over_time_vec->push_back(sum_rx_messages);
-	this->failed_transmissions_over_time_vec->push_back(sum_num_failed_transmissions);
-	float buffer_efficiency = (float)sum_buffer_space_occupied / (float)sum_buffer_space_total;
-	this->buffer_efficiency_over_time_vec->push_back(buffer_efficiency);
+	this->tx_flits_over_time_vec->push_back(sum_tx_flits);
+	this->rx_flits_over_time_vec->push_back(sum_rx_flits);
+	this->stalls_over_time_vec->push_back(sum_num_stalls);
+	float buffers_efficiency = (float)sum_buffers_space_occupied / (float)sum_buffers_space_total;
+	this->buffers_efficiency_over_time_vec->push_back(buffers_efficiency);
 }
 
 void Simulator::update_aggregate_metrics () {
@@ -271,24 +277,29 @@ void Simulator::update_aggregate_metrics () {
 	{
 		uint32_t thread_message_latency = 0;
 		float thread_message_distance = 0;
+		uint32_t thread_message_size = 0;
 
 		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < num_messages; i++) {
 			Message_Transmission_Info* message_transmission_info = global_message_transmission_info[i];
-			uint32_t message_latency = (uint32_t)(message_transmission_info->rx_time - message_transmission_info->tx_time);
-			thread_message_latency += message_latency;
+			thread_message_latency += message_transmission_info->latency;
 			thread_message_distance += message_transmission_info->avg_packet_distance;
+			thread_message_size += message_transmission_info->size;
 		}
 
 		#pragma omp atomic
 		this->total_message_latency += thread_message_latency;
 		#pragma omp atomic
 		this->total_message_distance += thread_message_distance;
+		#pragma omp atomic
+		this->total_message_size += thread_message_size;
 	}
 
 	this->avg_message_latency = (float)this->total_message_latency / (float)num_messages;
 	this->avg_message_distance = this->total_message_distance / (float)num_messages;
+	this->avg_message_size = this->total_message_size / (float)num_messages;
 	this->avg_message_throughput = (float)num_messages / (float)global_clock;
+	this->avg_message_speed = this->avg_message_distance / this->avg_message_latency;
 }
 
 void Simulator::simulate () {
@@ -308,100 +319,109 @@ void Simulator::simulate () {
 	printf("Finished Simulation!!!\n\n");
 	this->print_global_message_transmission_info();
 
+	this->update_aggregate_metrics();
+	this->print_aggregate_metrics();
+	printf("Total Simulation Time in Clock Cycles: %d\n\n", global_clock);
+
 	printf("Starting Logging Stats...\n\n");
 	this->log_stats();
 	printf("Finished Logging Stats!!!\n\n");
-
-	this->update_aggregate_metrics();
-	this->print_aggregate_metrics();
-	printf("Total Simulation Time in Clock Cycles: %d\n", global_clock);
-
 
 }
 
 void Simulator::log_stats () {
 	std::ofstream tx_stats_file(this->tx_stats_path);
-	for (auto itr=this->tx_messages_over_time_vec->begin(); itr != this->tx_messages_over_time_vec->end(); itr++) {
+	for (auto itr=this->tx_flits_over_time_vec->begin(); itr != this->tx_flits_over_time_vec->end(); itr++) {
 		uint32_t val = *itr;
 		tx_stats_file << val << std::endl;
 	}
 	tx_stats_file.close();
 
 	std::ofstream rx_stats_file(this->rx_stats_path);
-	for (auto itr=this->rx_messages_over_time_vec->begin(); itr != this->rx_messages_over_time_vec->end(); itr++) {
+	for (auto itr=this->rx_flits_over_time_vec->begin(); itr != this->rx_flits_over_time_vec->end(); itr++) {
 		uint32_t val = *itr;
 		rx_stats_file << val << std::endl;
 	}
 	rx_stats_file.close();
 
-	std::ofstream failed_stats_file(this->failed_stats_path);
-	for (auto itr=this->failed_transmissions_over_time_vec->begin(); itr != this->failed_transmissions_over_time_vec->end(); itr++) {
+	std::ofstream stalls_stats_file(this->stalls_stats_path);
+	for (auto itr=this->stalls_over_time_vec->begin(); itr != this->stalls_over_time_vec->end(); itr++) {
 		uint32_t val = *itr;
-		failed_stats_file << val << std::endl;
+		stalls_stats_file << val << std::endl;
 	}
-	failed_stats_file.close();
+	stalls_stats_file.close();
 
-	std::ofstream buffer_stats_file(this->buffer_stats_path);
-	for (auto itr=this->buffer_efficiency_over_time_vec->begin(); itr != this->buffer_efficiency_over_time_vec->end(); itr++) {
+	std::ofstream buffers_stats_file(this->buffers_stats_path);
+	for (auto itr=this->buffers_efficiency_over_time_vec->begin(); itr != this->buffers_efficiency_over_time_vec->end(); itr++) {
 		float val = *itr;
-		buffer_stats_file << val << std::endl;
+		buffers_stats_file << val << std::endl;
 	}
-	buffer_stats_file.close();
+	buffers_stats_file.close();
+
+	std::ofstream transmissions_stats_file(this->transmissions_stats_path);
+	transmissions_stats_file << "Latency" << " " \
+							 << "Size" << " " \
+							 << "Distance" << " " \
+							 << "TX_Processor_ID" << " " \
+							 << "TX_Time" << " " \
+							 << "RX_Processor_ID" << " " \
+							 << "RX_Time" << std::endl;
+	for (uint32_t i=0; i < this->message_generator->num_messages; i++) {
+		Message_Transmission_Info* message_transmission_info = global_message_transmission_info[i];
+
+		uint32_t latency = message_transmission_info->latency;
+		uint32_t size = message_transmission_info->size;
+		uint32_t distance = (uint32_t)message_transmission_info->avg_packet_distance;
+		uint32_t tx_processor_id = message_transmission_info->tx_processor_id;
+		uint32_t tx_time = message_transmission_info->tx_time;
+		uint32_t rx_processor_id = message_transmission_info->rx_processor_id;
+		uint32_t rx_time = message_transmission_info->rx_time;
+
+		transmissions_stats_file << latency << " " \
+								 << size << " " \
+								 << distance << " " \
+								 << tx_processor_id << " " \
+								 << tx_time << " " \
+								 << rx_processor_id << " " \
+								 << rx_time << std::endl;
+	}
+	transmissions_stats_file.close();
+
+	std::ofstream aggregate_stats_file(this->aggregate_stats_path);
+	aggregate_stats_file << "Average_Message_Latency_In_Clock_Cycles" << " " \
+						 << "Average_Message_Distance_In_Channels" << " " \
+						 << "Average_Message_Size" << " " \
+						 << "Average_Message_Throughput_In_Messages/Clock_Cycles" << " " \
+						 << "Average_Message_Speed_In_Distance/Latency" << std::endl;
+	aggregate_stats_file << this->avg_message_latency << " " \
+						 << this->avg_message_distance << " " \
+						 << this->avg_message_size << " " \
+						 << this->avg_message_throughput << " " \
+						 << this->avg_message_speed << std::endl;
+	aggregate_stats_file.close();
 }
 
 void Simulator::print_global_message_transmission_info () {
 	printf("Global Clock Cycle %d\n", global_clock);
 	printf("\n");
-	printf("%-15s%-25s%-20s%-12s%-20s%-12s\n", "Message ID", "Avg Packet Distance", "TX Processor ID", "TX Time", "RX Processor ID", "RX Time");
+	printf("%-15s%-12s%-10s%-25s%-20s%-12s%-20s%-12s\n", "Message ID", "Latency", "Size", "Avg Packet Distance", "TX Processor ID", "TX Time", "RX Processor ID", "RX Time");
 	for (uint32_t i=0; i < this->message_generator->num_messages; i++) {
+		uint32_t latency = global_message_transmission_info[i]->latency;
+		uint32_t size = global_message_transmission_info[i]->size;
 		float avg_packet_distance = global_message_transmission_info[i]->avg_packet_distance;
 		uint32_t tx_processor_id = global_message_transmission_info[i]->tx_processor_id;
 		int tx_time = global_message_transmission_info[i]->tx_time;
 		uint32_t rx_processor_id = global_message_transmission_info[i]->rx_processor_id;
 		int rx_time = global_message_transmission_info[i]->rx_time;
-		printf("%-15d%-25f%-20d%-12d%-20d%-12d\n", i, avg_packet_distance, tx_processor_id, tx_time, rx_processor_id, rx_time);
+		printf("%-15d%-12d%-10d%-25d%-20d%-12d%-20d%-12d\n", i, latency, size, (uint32_t)avg_packet_distance, tx_processor_id, tx_time, rx_processor_id, rx_time);
 	}
 	printf("\n\n");
 }
 
 void Simulator::print_aggregate_metrics() {
-	printf("Average Latency in Clock Cycles: %f\n", this->avg_message_latency);
-	printf("Average Distance in Channels: %f\n", this->avg_message_distance);
+	printf("Average Message Latency in Clock Cycles: %f\n", this->avg_message_latency);
+	printf("Average Message Distance in Channels: %f\n", this->avg_message_distance);
+	printf("Average Message Size: %f\n", this->avg_message_size);
 	printf("Average Throughput in Messages/Clock Cycles: %f\n", this->avg_message_throughput);
-	printf("Average Speed in Distance/Latency: %f\n", this->avg_message_distance/this->avg_message_latency);
+	printf("Average Speed in Distance/Latency: %f\n", this->avg_message_speed);
 }
-
-// #include <unistd.h>
-// #include <ios>
-// #include <iostream>
-// #include <fstream>
-// #include <string>
-// using namespace std;
-// void mem_usage(double& vm_usage, double& resident_set) {
-//    vm_usage = 0.0;
-//    resident_set = 0.0;
-//    ifstream stat_stream("/proc/self/stat",ios_base::in); //get info from proc
-//    directory
-//    //create some variables to get info
-//    string pid, comm, state, ppid, pgrp, session, tty_nr;
-//    string tpgid, flags, minflt, cminflt, majflt, cmajflt;
-//    string utime, stime, cutime, cstime, priority, nice;
-//    string O, itrealvalue, starttime;
-//    unsigned long vsize;
-//    long rss;
-//    stat_stream >> pid >> comm >> state >> ppid >> pgrp >> session >> tty_nr
-//    >> tpgid >> flags >> minflt >> cminflt >> majflt >> cmajflt
-//    >> utime >> stime >> cutime >> cstime >> priority >> nice
-//    >> O >> itrealvalue >> starttime >> vsize >> rss; // don't care
-//    about the rest
-//    stat_stream.close();
-//    long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // for x86-64 is configured
-//    to use 2MB pages
-//    vm_usage = vsize / 1024.0;
-//    resident_set = rss * page_size_kb;
-// }
-// int main() {
-//    double vm, rss;
-//    mem_usage(vm, rss);
-//    cout << "Virtual Memory: " << vm << "\nResident set size: " << rss << endl;
-// }

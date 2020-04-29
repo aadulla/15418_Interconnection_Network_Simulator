@@ -12,8 +12,10 @@ private:
 	std::string config_file_path;
 	std::string tx_stats_path;
 	std::string rx_stats_path;
-	std::string failed_stats_path;
-	std::string buffer_stats_path;
+	std::string stalls_stats_path;
+	std::string buffers_stats_path;
+	std::string transmissions_stats_path;
+	std::string aggregate_stats_path;
 	
 	Network* network;
 	Message_Generator* message_generator;
@@ -24,16 +26,18 @@ private:
 	/* aggregate simulation metrics */
 	uint32_t total_message_latency;
 	float total_message_distance; // same as avg packet distance
-	uint32_t total_failed_transmissions;
-	float avg_message_latency = 0.0;
-	float avg_message_distance = 0.0;
-	float avg_message_throughput = 0.0;
+	uint32_t total_message_size;
+	float avg_message_latency;
+	float avg_message_distance;
+	float avg_message_size;
+	float avg_message_throughput;
+	float avg_message_speed;
 
 	/* over time simulation metrics */
-	std::vector<uint32_t>* tx_messages_over_time_vec; // how many messages were transmitted by processors
-	std::vector<uint32_t>* rx_messages_over_time_vec; // how many messags were received by processors
-	std::vector<uint32_t>* failed_transmissions_over_time_vec; // metric for contention in network
-	std::vector<float>* buffer_efficiency_over_time_vec; // metric for how "busy" network is
+	std::vector<uint32_t>* tx_flits_over_time_vec; // how many flits were transmitted by processors
+	std::vector<uint32_t>* rx_flits_over_time_vec; // how many flits were received by processors
+	std::vector<uint32_t>* stalls_over_time_vec; // metric for contention in network
+	std::vector<float>* buffers_efficiency_over_time_vec; // metric for how "busy" network is
 
 public:
 	Simulator(std::string test_path);

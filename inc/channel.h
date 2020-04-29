@@ -5,6 +5,7 @@
 
 #include "node.h"
 #include "buffer.h"
+#include "flit.h"
 
 class Node;
 
@@ -17,6 +18,7 @@ typedef struct _Transmission_State {
 	FLIT_STATUS flit_status;
 	LOCK_STATUS lock_status;
 	TRANSMISSION_STATUS transmission_status;
+	FLIT_TYPE flit_type;
 	uint32_t packet_id;
 	uint32_t message_id;
 } Transmission_State;
@@ -48,6 +50,7 @@ public:
 	void reset_transmission_state();
 	void propose_transmission(Buffer* tx_buffer);
 	FLIT_TYPE execute_transmission(Buffer* rx_buffer);
+	FLIT_TYPE get_transmitted_flit_type();
 	void fail_transmission();
 	void clear_transmission_status();
 	bool is_failed_transmission();

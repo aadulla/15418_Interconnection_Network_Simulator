@@ -1,0 +1,27 @@
+/* Network Parameters */
+Network Type: Mesh
+Number of Processors: 100
+Number of Routers: 100
+
+/* Router Parameters */
+Router Buffer Capacity: 15
+Number of Virtual Channels: 5
+
+/* Message Parameters */
+Packet Width: 5
+Number of Data Flits Per Packet: 12
+
+/* Routing Algorithm */
+Routing Algorithm: Mesh XY
+
+/* Flow Control Algorithm */
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+
+/* Simulator Parameters */
+Number of Messages: 1000
+Lower Message Size: 20
+Upper Message Size: 50
+Message Size Distribution: Random
+Message Node Distribution: Uniform
+

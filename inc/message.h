@@ -6,6 +6,8 @@
 #include "packet.h"
 
 typedef struct _Message_Transmission_Info {
+	uint32_t latency;
+	uint32_t size;
 	float avg_packet_distance;
 	uint32_t tx_processor_id;
 	int tx_time;

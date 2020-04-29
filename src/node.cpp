@@ -45,12 +45,17 @@ uint32_t Flit_Info_To_Router_ID_Cache::find (Flit_Info* flit_info) {
 	return itr->second; 
 }
 
+bool Flit_Info_To_Router_ID_Cache::is_in (Flit_Info* flit_info) {
+	auto itr = this->flit_info_to_router_id_map->find(flit_info);
+	return itr != this->flit_info_to_router_id_map->end();
+}
+
 Internal_Info_Summary::Internal_Info_Summary () {
 	this->message_id_to_packet_id_set_map = new std::map<uint32_t, std::set<uint32_t>*>;
 	this->buffer_to_flit_info_set_map = new std::map<Buffer*, std::set<Flit_Info*, flit_info_comp>*>;
 	this->buffer_space_occupied = 0;
 	this->buffer_space_total = 0;
-	this->num_failed_transmissions = 0;
+	this->num_stalls = 0;
 }
 
 void Internal_Info_Summary::init_buffer_in_map (Buffer* buffer) {
@@ -94,6 +99,10 @@ void Internal_Info_Summary::insert (Buffer* buffer, uint32_t message_id, uint32_
 	flit_info_set->insert(flit_info);
 }
 
+void Internal_Info_Summary::increment_num_stalls () {
+	this->num_stalls += 1;
+}
+
 void Internal_Info_Summary::clear () {
 	this->message_id_to_packet_id_set_map->clear();
 	for (auto itr_buffer=this->buffer_to_flit_info_set_map->begin(); itr_buffer != this->buffer_to_flit_info_set_map->end(); itr_buffer++) {
@@ -106,7 +115,7 @@ void Internal_Info_Summary::clear () {
 	}
 	this->buffer_space_occupied = 0;
 	this->buffer_space_total = 0;
-	this->num_failed_transmissions = 0;
+	this->num_stalls = 0;
 }
 
 Node::Node (uint32_t node_id, void* network_id, uint32_t num_channels, uint32_t num_neighbors, uint32_t max_buffer_capacity, NODE_TYPE type) {
@@ -178,6 +187,7 @@ void Processor::tx () {
 	// if injection buffer is empty, add new message to transmit
 	if (this->injection_buffer->is_empty()) {
 		if (this->tx_message_vec->size() != 0) {
+			// this->transmit_message_flag = true;
 			auto itr = this->tx_message_vec->begin();
 			Message* message = *itr;
 			this->inject_message(message);
@@ -219,8 +229,12 @@ void Processor::rx () {
 
 		// check if we received the entire message
 		if (itr->second == 0) {
+			// this->receive_message_flag = true;
 			this->received_messages_vec->push_back(flit->message_id);
 			global_message_transmission_info[flit->message_id]->rx_time = (int)global_clock;
+			uint32_t rx_time = (uint32_t)global_message_transmission_info[flit->message_id]->rx_time;
+			uint32_t tx_time = (uint32_t)global_message_transmission_info[flit->message_id]->tx_time;
+			global_message_transmission_info[flit->message_id]->latency = rx_time - tx_time;
 		}
 
 		delete(flit);
@@ -346,7 +360,8 @@ void Router::tx () {
 			uint32_t next_dest_router_id = (*(this->routing_func))(flit, 
 																   this->node_id, 
 																   this->network_id,
-																   this->flit_info_to_router_id_cache);
+																   this->flit_info_to_router_id_cache,
+																   this->neighbor_to_io_channels_map);
 
 			bool is_proposed = false;
 			bool is_failed = false;
@@ -407,6 +422,10 @@ void Router::tx () {
 						break;
 					}
 				}
+			}
+
+			if (is_proposed == false || is_failed == true) {
+				this->internal_info_summary->increment_num_stalls();
 			}
 		}
 	}
@@ -473,7 +492,10 @@ void Router::rx() {
 			}
 		}
 
-		if (is_executed == false || is_failed == true) input_channel->fail_transmission();
+		if (is_executed == false || is_failed == true) {
+			input_channel->fail_transmission();
+			this->internal_info_summary->increment_num_stalls();
+		}
 	}
 }
 
@@ -485,8 +507,6 @@ void Router::erase_cached_routing (uint32_t message_id, uint32_t packet_id) {
 }
 
 void Router::update_internal_info_summary () {
-	this->internal_info_summary->clear();
-
 	for (auto itr_channel=this->input_channel_to_buffers_map->begin(); itr_channel != this->input_channel_to_buffers_map->end(); itr_channel++) {
 		Buffer** buffers = itr_channel->second;
 		for (uint32_t i=0; i < this->num_virtual_channels; i++) {
@@ -500,7 +520,6 @@ void Router::update_internal_info_summary () {
 			this->internal_info_summary->buffer_space_total += buffer->total_size();
 		}
 		Channel* input_channel = itr_channel->first;
-		if (input_channel->is_failed_transmission()) this->internal_info_summary->num_failed_transmissions += 1;
 		input_channel->clear_transmission_status();
 	}
 }
@@ -509,7 +528,7 @@ uint32_t Router::get_buffer_space_occupied () {return this->internal_info_summar
 
 uint32_t Router::get_buffer_space_total () {return this->internal_info_summary->buffer_space_total;}
 
-uint32_t Router::get_num_failed_transmissions () {return this->internal_info_summary->num_failed_transmissions;}
+uint32_t Router::get_num_stalls () {return this->internal_info_summary->num_stalls;}
 
 void Router::clear_internal_info_summary () {
 	this->internal_info_summary->clear();

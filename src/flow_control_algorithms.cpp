@@ -2,8 +2,6 @@
 #include <cassert>
 #include <signal.h>
 
-// #include "routing_algorithms.h"
-// #include "node.h"
 #include "buffer.h"
 #include "flit.h"
 

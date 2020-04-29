@@ -17,10 +17,13 @@ Message::Message(uint32_t size, uint32_t message_id, uint32_t source, uint32_t d
 	this->message_id = message_id;
 
 	global_message_transmission_info[this->message_id]->avg_packet_distance = 0.0;
+	global_message_transmission_info[this->message_id]->latency = 0;
+	global_message_transmission_info[this->message_id]->size = size;
 	global_message_transmission_info[this->message_id]->tx_processor_id = this->source;
 	global_message_transmission_info[this->message_id]->tx_time = -15418;
 	global_message_transmission_info[this->message_id]->rx_processor_id = this->dest;
 	global_message_transmission_info[this->message_id]->rx_time = -15418;
+
 	
 	this->packet_lst = new Packet*[this->num_packets];
 	for (uint32_t i=0; i < this->num_packets; i++) {

@@ -31,6 +31,7 @@ public:
 	void insert(Flit_Info* flit_info, uint32_t next_dest_router_id);
 	void erase(Flit_Info* flit_info);
 	uint32_t find(Flit_Info* flit_info);
+	bool is_in(Flit_Info* flit_info);
 };
 
 class Internal_Info_Summary {
@@ -40,11 +41,12 @@ public:
 	std::map<Buffer*, std::set<Flit_Info*, flit_info_comp>*>* buffer_to_flit_info_set_map;
 	uint32_t buffer_space_occupied;
 	uint32_t buffer_space_total;
-	uint32_t num_failed_transmissions;
+	uint32_t num_stalls;
 
 	Internal_Info_Summary();
 	void init_buffer_in_map(Buffer* buffer);
 	void insert(Buffer* buffer, uint32_t message_id, uint32_t packet_id);
+	void increment_num_stalls();
 	void clear();
 	void print();
 
@@ -85,7 +87,6 @@ public:
 	Flit_Info_To_Router_ID_Cache* flit_info_to_router_id_cache;
 	Internal_Info_Summary* internal_info_summary;
 
-
 	Router(uint32_t node_id, 
 		   void* network_id,
 		   uint32_t num_channels, 
@@ -101,7 +102,7 @@ public:
 	void erase_cached_routing(uint32_t message_id, uint32_t packet_id);
 	uint32_t get_buffer_space_occupied();
 	uint32_t get_buffer_space_total();
-	uint32_t get_num_failed_transmissions();
+	uint32_t get_num_stalls();
 	void clear_internal_info_summary();
 	void print();
 	void tx();

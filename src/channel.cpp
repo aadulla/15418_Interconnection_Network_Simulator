@@ -16,6 +16,7 @@ Channel::Channel (Node* source, Node* dest) {
 	this->dest = dest;
 	this->transmission_state = new Transmission_State;
 	this->reset_transmission_state();
+	this->transmission_state->flit_type = HEAD;
 	this->buffer_lst = NULL;
 	this->num_buffers = 0;
 }
@@ -142,8 +143,13 @@ FLIT_TYPE Channel::execute_transmission (Buffer* rx_buffer) {
 	}
 
 	this->transmission_state->transmission_status = SUCCESS;
+	this->transmission_state->flit_type = flit_type;
 
 	return flit_type;
+}
+
+FLIT_TYPE Channel::get_transmitted_flit_type () {
+	return this->transmission_state->flit_type;
 }
 
 void Channel::fail_transmission () {
@@ -155,12 +161,14 @@ void Channel::clear_transmission_status () {
 }
 
 bool Channel::is_failed_transmission () {
-	return this->transmission_state->transmission_status == FAIL;
+	bool is_failed = this->transmission_state->transmission_status == FAIL;
+	this->clear_transmission_status();
+	return is_failed;
 }
 
 bool Channel::is_successful_transmission () {
 	bool is_successful = this->transmission_state->transmission_status == SUCCESS;
-	this->transmission_state->transmission_status = CLEAR;
+	this->clear_transmission_status();
 	return is_successful;
 
 }

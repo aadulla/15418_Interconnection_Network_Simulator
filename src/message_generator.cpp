@@ -9,15 +9,13 @@
 #include "message_generator.h"
 #include "message.h"
 
-Message_Generator::Message_Generator (uint32_t rng_seed,
-									  uint32_t num_messages,
+Message_Generator::Message_Generator (uint32_t num_messages,
 					 				  uint32_t num_processors,
 					  				  uint32_t lower_message_size, 
 					  				  uint32_t upper_message_size, 
 					  				  MESSAGE_SIZE_DISTRIBUTION message_size_distribution,
 					  				  MESSAGE_NODE_DISTRIBUTION message_node_distribution) {
 
-	srand(rng_seed);
 	this->num_messages = num_messages;
 	this->num_processors = num_processors;
 	this->lower_message_size = lower_message_size;

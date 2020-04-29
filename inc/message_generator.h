@@ -28,8 +28,7 @@ private:
 public:
 	uint32_t num_messages;
 
-	Message_Generator(uint32_t rng_seed,
-					  uint32_t num_messages,
+	Message_Generator(uint32_t num_messages,
 					  uint32_t num_processors,
 					  uint32_t lower_message_size, 
 					  uint32_t upper_message_size, 
