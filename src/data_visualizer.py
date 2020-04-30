@@ -99,7 +99,7 @@ def data_parser(test_dir_path_lst):
 	tx_stats_df = pd.DataFrame.from_dict(tx_stats_dict) 
 	rx_stats_df = pd.DataFrame.from_dict(rx_stats_dict) 
 	stalls_stats_df = pd.DataFrame.from_dict(stalls_stats_dict) 
-	buffers_stats_df = pd.DataFrame.from_dict(buffers_stats_dict) 
+	buffers_stats_df = pd.DataFrame.from_dict(buffers_stats_dict)
 	latency_stats_df = pd.DataFrame.from_dict(latency_stats_dict) 
 	size_stats_df = pd.DataFrame.from_dict(size_stats_dict) 
 	distance_stats_df = pd.DataFrame.from_dict(distance_stats_dict) 

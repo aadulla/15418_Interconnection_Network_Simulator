@@ -19,6 +19,8 @@ extern uint32_t num_data_flits_per_packet;
 extern uint32_t global_clock;
 extern Message_Transmission_Info** global_message_transmission_info;
 
+extern int flits;
+
 Flit_Info_To_Router_ID_Cache::Flit_Info_To_Router_ID_Cache () {
 	this->flit_info_to_router_id_map = new std::map<Flit_Info*, uint32_t, flit_info_comp>;
 	omp_init_lock(&this->lock);

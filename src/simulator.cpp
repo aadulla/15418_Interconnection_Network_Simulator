@@ -18,7 +18,11 @@ uint32_t num_data_flits_per_packet;
 uint32_t global_clock;
 Message_Transmission_Info** global_message_transmission_info;
 
-Simulator::Simulator(std::string test_path) {
+int flits = 0;
+
+Simulator::Simulator(std::string test_path, bool is_verbose) {
+	this->is_verbose = is_verbose;
+
 	this->test_path = test_path;
 	this->config_file_path = test_path + "config.txt";
 	this->tx_stats_path = test_path + "tx_stats.txt";
@@ -260,7 +264,8 @@ void Simulator::update_over_time_metrics () {
 
 	// printf("Num Transmitted %d\n", sum_tx_flits);
 	// printf("Num Received %d\n", sum_rx_flits);
-	// printf("Num Flits in Network %d\n", sum_buffers_space_occupied);
+	if (this->is_verbose) printf("Num Flits in Network %d\n", sum_buffers_space_occupied);
+	// flits = sum_buffers_space_occupied;
 	// printf("\n");
 
 	this->tx_flits_over_time_vec->push_back(sum_tx_flits);
@@ -314,10 +319,9 @@ void Simulator::simulate () {
 		global_clock++;
 		this->update_over_time_metrics();
 		this->update_simulation_status();
-		// raise(SIGTRAP);
 	}
 	printf("Finished Simulation!!!\n\n");
-	this->print_global_message_transmission_info();
+	if (this->is_verbose) this->print_global_message_transmission_info();
 
 	this->update_aggregate_metrics();
 	this->print_aggregate_metrics();

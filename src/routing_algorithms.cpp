@@ -47,7 +47,6 @@ int routing_cache_lookup(Flit* flit,
 	flit_info->message_id = flit->message_id;
 	flit_info->packet_id = flit->packet_id;
 
-	// if flit is a head flit, then need to insert it and router id to route to
 	if (flit->type == HEAD) {
 
 		if (network_type == MESH) {
@@ -62,9 +61,10 @@ int routing_cache_lookup(Flit* flit,
 			}
 
 			// check if this is a retry because head did not go through in previous transmission
-			// in this case, erase previous entry and create new entry whic is reflective of present network state
 			else if (flit_info_to_router_id_cache->is_in(flit_info)) {
+				// uint32_t next_router_id = flit_info_to_router_id_cache->find(flit_info);
 				flit_info_to_router_id_cache->erase(flit_info);
+				// delete(flit_info);
 				return -1;
 			}
 
@@ -102,6 +102,7 @@ bool is_unreserved_buffer(void* network_id, std::map<Router*, std::vector<IO_Cha
 				Channel* output_channel = (*itr_channel)->output_channel;
 				if (output_channel->is_dest_buffer_unreserved()) return true;
 			}
+			return false;
 		}
 	}
 	return false;

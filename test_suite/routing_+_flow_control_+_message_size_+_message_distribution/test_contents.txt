@@ -1,0 +1,432 @@
+TEST 0
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 1
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 2
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 3
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 4
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 5
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 6
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 7
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 8
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 9
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 10
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 11
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 12
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 13
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 14
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 15
+Routing Algorithm: Mesh XY
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 16
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 17
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 18
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 19
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 20
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 21
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 22
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 23
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 24
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 25
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 26
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 27
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 28
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 29
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 30
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 31
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 32
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 33
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 34
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 35
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 36
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 37
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 38
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 39
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 40
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 41
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 42
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 43
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Packet
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################
+TEST 44
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 10
+Upper Message Size: 10
+Number of Messages: 5000
+Message Size Distribution: Uniform
+##################################################
+TEST 45
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 20
+Upper Message Size: 20
+Number of Messages: 2500
+Message Size Distribution: Uniform
+##################################################
+TEST 46
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 50
+Upper Message Size: 50
+Number of Messages: 1000
+Message Size Distribution: Uniform
+##################################################
+TEST 47
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Cut Through
+Flow Control Granularity: Flit
+Lower Message Size: 100
+Upper Message Size: 100
+Number of Messages: 500
+Message Size Distribution: Uniform
+##################################################

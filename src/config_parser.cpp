@@ -38,7 +38,7 @@ void Config_Parser::parse_config_file (string config_file_path) {
 
 		string parameter_key = config_line.substr(0, colon_idx);
 		string parameter_value = config_line.substr(colon_idx + 2);
-		parameter_value.pop_back(); // remove trailing newline character
+		// parameter_value.pop_back(); // remove trailing newline character
 		this->parameter_key_to_val_map->find(parameter_key)->second = parameter_value;
 	}
 

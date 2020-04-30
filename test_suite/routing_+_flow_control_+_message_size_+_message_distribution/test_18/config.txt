@@ -1,0 +1,15 @@
+Network Type: Mesh
+Number of Processors: 100
+Number of Routers: 100
+Router Buffer Capacity: 13
+Number of Virtual Channels: 5
+Packet Width: 5
+Number of Data Flits Per Packet: 10
+Routing Algorithm: Mesh YX
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Packet
+Number of Messages: 1000
+Lower Message Size: 50
+Upper Message Size: 50
+Message Size Distribution: Uniform
+Message Node Distribution: Uniform

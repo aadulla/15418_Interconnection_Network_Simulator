@@ -154,10 +154,12 @@ FLIT_TYPE Channel::get_transmitted_flit_type () {
 
 void Channel::fail_transmission () {
 	this->transmission_state->transmission_status = FAIL;
+	// this->transmission_state->flit_status = UNASSIGNED;
 }
 
 void Channel::clear_transmission_status () {
 	this->transmission_state->transmission_status = CLEAR;
+	// this->transmission_state->flit_status = UNASSIGNED;
 }
 
 bool Channel::is_failed_transmission () {

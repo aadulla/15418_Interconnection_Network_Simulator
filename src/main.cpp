@@ -13,9 +13,10 @@ int main(int argc, char **argv) {
 
 	int num_threads = 1;
 	string config_file_path = "";
+	bool is_verbose = false;
 
 	int opt;
-	while ((opt = getopt(argc, argv, "t:p:")) != -1) {
+	while ((opt = getopt(argc, argv, "vt:p:")) != -1) {
 		switch (opt) {
 			case 't': {
 				num_threads = atoi(optarg);
@@ -25,13 +26,17 @@ int main(int argc, char **argv) {
 				config_file_path = optarg;
 				break;
 			}
+			case 'v': {
+				is_verbose = true;
+				break;
+			}
 		}
 	}
 
 	omp_set_num_threads(num_threads);
 
 	double start_time = CycleTimer::currentSeconds();
-	Simulator test = Simulator(config_file_path);
+	Simulator test = Simulator(config_file_path, is_verbose);
 	test.setup();
 	test.simulate();
 	double end_time = CycleTimer::currentSeconds();

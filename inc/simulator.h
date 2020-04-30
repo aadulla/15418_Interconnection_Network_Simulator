@@ -8,6 +8,8 @@
 class Simulator {
 
 private:
+	bool is_verbose; 
+	
 	std::string test_path;
 	std::string config_file_path;
 	std::string tx_stats_path;
@@ -40,7 +42,7 @@ private:
 	std::vector<float>* buffers_efficiency_over_time_vec; // metric for how "busy" network is
 
 public:
-	Simulator(std::string test_path);
+	Simulator(std::string test_path, bool is_verbose);
 	void setup();
 	void update_over_time_metrics();
 	void update_aggregate_metrics();

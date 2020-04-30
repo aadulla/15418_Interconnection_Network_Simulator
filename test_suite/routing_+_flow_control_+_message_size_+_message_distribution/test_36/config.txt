@@ -1,0 +1,15 @@
+Network Type: Mesh
+Number of Processors: 100
+Number of Routers: 100
+Router Buffer Capacity: 13
+Number of Virtual Channels: 5
+Packet Width: 5
+Number of Data Flits Per Packet: 10
+Routing Algorithm: Mesh Adaptive
+Flow Control Algorithm: Store Forward
+Flow Control Granularity: Flit
+Number of Messages: 5000
+Lower Message Size: 10
+Upper Message Size: 10
+Message Size Distribution: Uniform
+Message Node Distribution: Uniform
