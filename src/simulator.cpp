@@ -18,8 +18,6 @@ uint32_t num_data_flits_per_packet;
 uint32_t global_clock;
 Message_Transmission_Info** global_message_transmission_info;
 
-int flits = 0;
-
 Simulator::Simulator(std::string test_path, bool is_verbose) {
 	this->is_verbose = is_verbose;
 
@@ -50,6 +48,9 @@ Simulator::Simulator(std::string test_path, bool is_verbose) {
 	this->rx_flits_over_time_vec = new std::vector<uint32_t>;
 	this->stalls_over_time_vec = new std::vector<uint32_t>;
 	this->buffers_efficiency_over_time_vec = new std::vector<float>;
+
+	this->num_flits_in_network = -1;
+	this->sample_rate = 1000;
 }
 
 void Simulator::setup() {
@@ -267,6 +268,16 @@ void Simulator::update_over_time_metrics () {
 	if (this->is_verbose) printf("Num Flits in Network %d\n", sum_buffers_space_occupied);
 	// flits = sum_buffers_space_occupied;
 	// printf("\n");
+
+	// deadlock check
+	if (global_clock % this->sample_rate == 0) {
+		if (this->num_flits_in_network == (int)sum_buffers_space_occupied) {
+			assert(false);
+		}
+		else {
+			this->num_flits_in_network = sum_buffers_space_occupied;
+		}
+	}
 
 	this->tx_flits_over_time_vec->push_back(sum_tx_flits);
 	this->rx_flits_over_time_vec->push_back(sum_rx_flits);

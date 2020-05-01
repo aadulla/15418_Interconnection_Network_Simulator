@@ -26,28 +26,29 @@ base_config_dict = {"Network Type:": "Mesh",
 global_test_suite_dict = {
 				"routing_+_flow_control_+_message_size_+_message_distribution": [
 																					[
-																						[["Routing Algorithm:"		 , ["Mesh XY", "Mesh YX", "Mesh Adaptive"]],
+																						[["Routing Algorithm:"		 , ["Mesh XY", "Mesh Adaptive"]],
 																						 ["Flow Control Algorithm:"	 , ["Store Forward", "Cut Through"]],
-																						 ["Flow Control Granularity:" , ["Packet", "Flit"]]], 
+																						 ["Flow Control Granularity:", ["Packet", "Flit"]]], 
 																						yes_permute],
 																					 [
-																						[["Lower Message Size:", [10,   20,   50,   100]],
-																						 ["Upper Message Size:", [10,   20,   50,   100]],
-																						 ["Number of Messages:", [5000, 2500, 1000, 500]]],
+																						[["Lower Message Size:", [10,   50,   100, 500]],
+																						 ["Upper Message Size:", [10,   50,   100, 500]],
+																						 ["Number of Messages:", [5000, 1000, 500, 100]]],
 																						no_permute],
 																					 [
 																						[["Message Size Distribution:", ["Uniform"]]],
 																						no_permute]
 																				],
 											
-				"buffer_capacity_+_virtual_channel_+_flow_control_granularity": [
+				"routing_+_buffer_capacity_+_virtual_channel_+_granularity": [
 																					[
-																						[["Router Buffer Capacity:"	   ,  [1,   2,  4, 6, 10, 15, 30, 60]],
-																						 ["Number of Virtual Channels:" , [60, 30, 15, 10, 6,  4,  2,  1]]],
+																						[["Router Buffer Capacity:"	   ,  [ 3,  4,   6,  10, 15, 20]],
+																						 ["Number of Virtual Channels:" , [20, 15,  10,   6,  4,  3]]],
 																						no_permute],
 																					[
-																						[["Flow Control Granularity:", ["Packet","Flit"]]],
-																						no_permute]
+																						[["Routing Algorithm:", ["Mesh XY", "Mesh Adaptive"]],
+																						 ["Flow Control Granularity:", ["Packet","Flit"]]],
+																						yes_permute]
 																				]
 				}
 

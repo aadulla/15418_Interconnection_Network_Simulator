@@ -9,7 +9,7 @@ class Simulator {
 
 private:
 	bool is_verbose; 
-	
+
 	std::string test_path;
 	std::string config_file_path;
 	std::string tx_stats_path;
@@ -40,6 +40,10 @@ private:
 	std::vector<uint32_t>* rx_flits_over_time_vec; // how many flits were received by processors
 	std::vector<uint32_t>* stalls_over_time_vec; // metric for contention in network
 	std::vector<float>* buffers_efficiency_over_time_vec; // metric for how "busy" network is
+
+	/* deadlock check */
+	int num_flits_in_network;
+	uint32_t sample_rate;
 
 public:
 	Simulator(std::string test_path, bool is_verbose);

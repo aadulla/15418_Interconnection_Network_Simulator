@@ -19,8 +19,6 @@ extern uint32_t num_data_flits_per_packet;
 extern uint32_t global_clock;
 extern Message_Transmission_Info** global_message_transmission_info;
 
-extern int flits;
-
 Flit_Info_To_Router_ID_Cache::Flit_Info_To_Router_ID_Cache () {
 	this->flit_info_to_router_id_map = new std::map<Flit_Info*, uint32_t, flit_info_comp>;
 	omp_init_lock(&this->lock);
@@ -383,7 +381,7 @@ void Router::tx () {
 					if (is_failed == true) break;
 				}
 				// should never come here
-				else assert(false);
+				else can_propose = true;
 
 				bool should_propose = (*(this->flow_control_func))(flit, buffer);
 
@@ -408,9 +406,11 @@ void Router::tx () {
 					// if granularity is packet, then check if this channel is locked
 					if (this->flow_control_granularity == PACKET) can_propose = output_channel->is_unlocked();
 					// if granuliary is flit, then check if there is a dest buffer reserved for it
-					else if (this->flow_control_granularity == FLIT) can_propose = output_channel->is_dest_buffer_unreserved();
+					else if (this->flow_control_granularity == FLIT) {
+						can_propose = output_channel->is_dest_buffer_unreserved();
+					}
 					// should never come here
-					else assert(false);
+					else can_propose = true;
 
 					bool should_propose = (*(this->flow_control_func))(flit, buffer);
 
@@ -630,7 +630,6 @@ ROUTER_CONNECTIONS 3
 	MESSAGES_RECEIVED 1,5,6
 	+++++++++++++++++++++++
 #############################
-
 */
 void Processor::print () {
 	printf("PROCESSOR %d\n", this->node_id);
@@ -650,4 +649,3 @@ void Processor::print () {
 	printf("\n");
 	printf("\t+++++++++++++++\n");
 }
-

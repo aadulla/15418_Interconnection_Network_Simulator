@@ -62,9 +62,8 @@ int routing_cache_lookup(Flit* flit,
 
 			// check if this is a retry because head did not go through in previous transmission
 			else if (flit_info_to_router_id_cache->is_in(flit_info)) {
-				// uint32_t next_router_id = flit_info_to_router_id_cache->find(flit_info);
 				flit_info_to_router_id_cache->erase(flit_info);
-				// delete(flit_info);
+				delete(flit_info);
 				return -1;
 			}
 
@@ -78,6 +77,7 @@ int routing_cache_lookup(Flit* flit,
 	// if flit is a data flit, then pull the next router id from the map
 	else if (flit->type == DATA) {
 		uint32_t next_router_id = flit_info_to_router_id_cache->find(flit_info);
+		delete(flit_info);
 		return (int)next_router_id;
 	}
 
@@ -85,6 +85,7 @@ int routing_cache_lookup(Flit* flit,
 	// delete entry because then we route packets individually
 	else if (flit->type == TAIL) {
 		uint32_t next_router_id = flit_info_to_router_id_cache->find(flit_info);
+		delete(flit_info);
 		return (int)next_router_id;
 	}
 
@@ -297,6 +298,8 @@ uint32_t mesh_adaptive_routing(Flit* flit,
 
 		// if both have unreserved buffers, then randomly pick one
 		if (is_x_unreserved_buffer && is_y_unreserved_buffer) {
+			// if (curr_router_id % 2 == 0) next_router_id = x_next_router_id;
+			// else next_router_id = y_next_router_id;
 			next_router_id = x_next_router_id;
 			// // choose x
 			// if ((((float)rand()) / RAND_MAX) < 0.5) next_router_id = x_next_router_id;
@@ -309,7 +312,9 @@ uint32_t mesh_adaptive_routing(Flit* flit,
 		else if (is_y_unreserved_buffer) next_router_id = y_next_router_id;
 		// neither have unreserved, then randomly pick one
 		else {
-			next_router_id = y_next_router_id;
+			// if (curr_router_id % 2 == 0) next_router_id = x_next_router_id;
+			// else next_router_id = y_next_router_id;
+			next_router_id = x_next_router_id;
 			// // choose x
 			// if ((((float)rand()) / RAND_MAX) < 0.5) next_router_id = x_next_router_id;
 			// // choose y

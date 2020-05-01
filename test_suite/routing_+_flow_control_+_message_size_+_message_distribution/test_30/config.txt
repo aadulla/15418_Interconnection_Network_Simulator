@@ -5,11 +5,11 @@ Router Buffer Capacity: 13
 Number of Virtual Channels: 5
 Packet Width: 5
 Number of Data Flits Per Packet: 10
-Routing Algorithm: Mesh YX
+Routing Algorithm: Mesh Adaptive
 Flow Control Algorithm: Cut Through
 Flow Control Granularity: Flit
-Number of Messages: 1000
-Lower Message Size: 50
-Upper Message Size: 50
+Number of Messages: 500
+Lower Message Size: 100
+Upper Message Size: 100
 Message Size Distribution: Uniform
 Message Node Distribution: Uniform

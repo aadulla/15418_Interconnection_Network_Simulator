@@ -43,20 +43,22 @@ def extract_data(data_file_path, data_type):
 	data_file.close()
 	return data_lst
 
-def plot_time_series(stats_df, rolling_window, x_label, y_label, title):
-	ax = stats_df.rolling(rolling_window).mean().plot()
+def plot_time_series(ax, stats_df, rolling_window, x_label, y_label, title, legend):
+	stats_df.rolling(rolling_window).mean().plot(ax=ax)
 	ax.set(xlabel=x_label, ylabel=y_label, title=title)
-	fig = ax.get_figure()
-	fig.set_size_inches(11,8)
-	plt.show()
+	ax.legend(legend)
+	# fig = ax.get_figure()
+	# fig.set_size_inches(x_size, y_size)
+	# plt.show()
 
-def plot_kde(stats_df, x_low, x_high, bw, x_label, y_label, title):
-	ax = stats_df.plot(kind='kde', bw_method=bw)
+def plot_kde(ax, stats_df, x_label, y_label, title, legend, x_low, x_high, bw):
+	ax = stats_df.plot(kind='kde', bw_method=bw, ax=ax)
 	ax.set(xlabel=x_label, ylabel=y_label, title=title)
+	ax.legend(legend)
 	ax.set_xbound(lower=x_low, upper=x_high)
-	fig = ax.get_figure()
-	fig.set_size_inches(11,8)
-	plt.show()
+	# fig = ax.get_figure()
+	# fig.set_size_inches(x_size, y_size)
+	# plt.show()
 
 def pad(data_dict):
 	max_len = 0
@@ -65,6 +67,42 @@ def pad(data_dict):
 	for key, data_stats in data_dict.items():
 		for i in range(len(data_stats), max_len, 1):
 			data_stats.append(0)
+
+def time_series_subplot(ax, dict_lst, key, x_label, y_label, titles, legend, rolling_window):
+	ax_rows = len(ax)
+	ax_cols = len(ax[0])
+	
+	i = 0
+	for r in range(ax_rows):
+		for c in range(ax_cols):
+			plot_time_series(ax[r,c],
+							 dict_lst[i][key], 
+							 rolling_window=rolling_window,
+							 x_label=x_label, 
+							 y_label=y_label, 
+							 title=titles[i],
+							 legend=legend
+							 )
+			i += 1
+
+def kde_subplot(ax, dict_lst, key, x_label, y_label, titles, legend,  x_low, x_high, bw):
+	ax_rows = len(ax)
+	ax_cols = len(ax[0])
+	
+	i = 0
+	for r in range(ax_rows):
+		for c in range(ax_cols):
+			plot_kde(ax[r,c],
+					 dict_lst[i][key],
+					 x_label=x_label, 
+					 y_label=y_label, 
+					 title=titles[i],
+					 legend=legend,
+					 x_low=x_low,
+					 x_high=x_high,
+					 bw=bw
+					 )
+			i += 1
 
 def data_parser(test_dir_path_lst):
 	tx_stats_dict = dict()
@@ -100,6 +138,7 @@ def data_parser(test_dir_path_lst):
 	rx_stats_df = pd.DataFrame.from_dict(rx_stats_dict) 
 	stalls_stats_df = pd.DataFrame.from_dict(stalls_stats_dict) 
 	buffers_stats_df = pd.DataFrame.from_dict(buffers_stats_dict)
+
 	latency_stats_df = pd.DataFrame.from_dict(latency_stats_dict) 
 	size_stats_df = pd.DataFrame.from_dict(size_stats_dict) 
 	distance_stats_df = pd.DataFrame.from_dict(distance_stats_dict) 
