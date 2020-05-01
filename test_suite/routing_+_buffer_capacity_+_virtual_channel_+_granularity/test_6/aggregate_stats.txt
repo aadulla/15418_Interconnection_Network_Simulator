@@ -1,2 +1,2 @@
 Average_Message_Latency_In_Clock_Cycles Average_Message_Distance_In_Channels Average_Message_Size Average_Message_Throughput_In_Messages/Clock_Cycles Average_Message_Speed_In_Distance/Latency
-371.729 8.68256 34.468 0.153516 0.0233572
+374.071 8.68256 34.468 0.155015 0.023211

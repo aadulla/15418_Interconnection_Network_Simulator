@@ -1,6 +1,3 @@
-routing_+_buffer_capacity_+_virtual_channel_+_granularity/test_19
-main: src/simulator.cpp:275: void Simulator::update_over_time_metrics(): Assertion `false' failed.
-
 routing_+_buffer_capacity_+_virtual_channel_+_granularity/test_23
 main: src/simulator.cpp:275: void Simulator::update_over_time_metrics(): Assertion `false' failed.
 

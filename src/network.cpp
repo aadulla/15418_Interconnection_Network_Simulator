@@ -39,36 +39,41 @@ void Network::init_connection (Node* node_A, Node* node_B) {
 	node_B->init_connection(node_A, channel_A_B, channel_B_A);
 }
 
-// parallelize this
+
+
 void Network::simulate () {
 	#pragma omp parallel 
 	{
-		#pragma omp for schedule(static)
+		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->num_routers; i++) {
 			Router* router = this->router_lst[i];
 			router->clear_internal_info_summary();
 		}
-		#pragma omp for schedule(static)
+		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->num_processors; i++) {
 			Processor* processor = this->processor_lst[i];
 			processor->tx();
 		}
-		#pragma omp for schedule(static)
+		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->num_routers; i++) {
 			Router* router = this->router_lst[i];
 			router->tx();
 		}
-		#pragma omp for schedule(static)
+		///////////////////////////////////////////////
+		#pragma omp barrier
+		///////////////////////////////////////////////
+		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->num_routers; i++) {
 			Router* router = this->router_lst[i];
 			router->rx();
 		}
-		#pragma omp for schedule(static)
+		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->num_processors; i++) {
 			Processor* processor = this->processor_lst[i];
 			processor->rx();
 		}
-		#pragma omp for schedule(static)
+
+		#pragma omp for schedule(static) nowait
 		for (uint32_t i=0; i < this->num_routers; i++) {
 			Router* router = this->router_lst[i];
 			router->update_internal_info_summary();

@@ -5,12 +5,29 @@ import sys
 import os
 
 def get_data_paths(test_dir_path):
+	aggregate_stats_path = os.path.join(test_dir_path, "aggregate_stats.txt")
 	tx_stats_path = os.path.join(test_dir_path, "tx_stats.txt")
 	rx_stats_path = os.path.join(test_dir_path, "rx_stats.txt")
 	stalls_stats_path = os.path.join(test_dir_path, "stalls_stats.txt")
 	buffers_stats_path = os.path.join(test_dir_path, "buffers_stats.txt")
 	transmissions_stats_path = os.path.join(test_dir_path, "transmissions_stats.txt")
-	return tx_stats_path, rx_stats_path, stalls_stats_path, buffers_stats_path, transmissions_stats_path
+	return aggregate_stats_path, tx_stats_path, rx_stats_path, stalls_stats_path, buffers_stats_path, transmissions_stats_path
+
+def extract_aggregate_data(data_file_path):
+	data_file = open(data_file_path)
+	data_lines = data_file.readlines()
+
+	headers = ['latency', 'distance', 'size', 'throughput', 'speed']
+	vals = data_lines[1].split()
+	data_dict = dict()
+	for header, val in zip(headers, vals):
+		header = header.lower()
+		val = float(val)
+		data_dict.update({header:val})
+
+	return data_dict
+
+
 
 def extract_transmissions_data(data_file_path):
 	data_file = open(data_file_path)
@@ -68,6 +85,14 @@ def pad(data_dict):
 		for i in range(len(data_stats), max_len, 1):
 			data_stats.append(0)
 
+def disp_aggregate_stats(dict_lst, legend):
+	for stats_dict in dict_lst:
+		tmp = stats_dict['aggregate'].copy()
+		if len(tmp.columns) == len(legend)-1: tmp.columns = legend[:-1]
+		else: tmp.columns = legend
+		print(tmp)
+		print()
+
 def time_series_subplot(ax, dict_lst, key, x_label, y_label, titles, legend, rolling_window):
 	ax_rows = len(ax)
 	ax_cols = len(ax[0])
@@ -105,6 +130,7 @@ def kde_subplot(ax, dict_lst, key, x_label, y_label, titles, legend,  x_low, x_h
 			i += 1
 
 def data_parser(test_dir_path_lst):
+	aggregate_stats_dict = dict()
 	tx_stats_dict = dict()
 	rx_stats_dict = dict()
 	stalls_stats_dict = dict()
@@ -114,13 +140,15 @@ def data_parser(test_dir_path_lst):
 	distance_stats_dict = dict()
 
 	for test_dir_path in test_dir_path_lst:
-		tx_stats_path, rx_stats_path, stalls_stats_path, buffers_stats_path, transmissions_stats_path = get_data_paths(test_dir_path)
+		aggregate_stats_path, tx_stats_path, rx_stats_path, stalls_stats_path, buffers_stats_path, transmissions_stats_path = get_data_paths(test_dir_path)
+		aggregate_stats = extract_aggregate_data(aggregate_stats_path)
 		tx_stats = extract_data(tx_stats_path, "int") 
 		rx_stats = extract_data(rx_stats_path, "int") 
 		stalls_stats = extract_data(stalls_stats_path, "int")
 		buffers_stats = extract_data(buffers_stats_path, "float")
 		transmissions_data_dict = extract_transmissions_data(transmissions_stats_path)
 
+		aggregate_stats_dict.update({test_dir_path: aggregate_stats})
 		tx_stats_dict.update({test_dir_path: tx_stats})
 		rx_stats_dict.update({test_dir_path: rx_stats})
 		stalls_stats_dict.update({test_dir_path: stalls_stats})
@@ -134,16 +162,17 @@ def data_parser(test_dir_path_lst):
 	pad(stalls_stats_dict)
 	pad(buffers_stats_dict)
 
+	aggregate_stats_df = pd.DataFrame.from_dict(aggregate_stats_dict) 
 	tx_stats_df = pd.DataFrame.from_dict(tx_stats_dict) 
 	rx_stats_df = pd.DataFrame.from_dict(rx_stats_dict) 
 	stalls_stats_df = pd.DataFrame.from_dict(stalls_stats_dict) 
 	buffers_stats_df = pd.DataFrame.from_dict(buffers_stats_dict)
-
 	latency_stats_df = pd.DataFrame.from_dict(latency_stats_dict) 
 	size_stats_df = pd.DataFrame.from_dict(size_stats_dict) 
 	distance_stats_df = pd.DataFrame.from_dict(distance_stats_dict) 
 
-	global_stats_df_dict = {"tx": tx_stats_df,
+	global_stats_df_dict = {"aggregate": aggregate_stats_df,
+							"tx": tx_stats_df,
 							"rx": rx_stats_df,
 							"stalls": stalls_stats_df,
 							"buffers": buffers_stats_df,
