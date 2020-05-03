@@ -3,6 +3,8 @@ import os
 import sys
 
 if __name__ == "__main__":
+	num_threads = sys.argv[1]
+
 	cwd = os.getcwd()
 	test_suite_path = os.path.join(cwd, "test_suite")
 	stderr_path = os.path.join(cwd, "stderr.txt")
@@ -21,7 +23,7 @@ if __name__ == "__main__":
 	subprocess.run(["make", "main"])
 	stderr_file = open(stderr_path, "w+")
 	for test_path in test_path_lst:
-		result = subprocess.run(["./main", "-t", "8", "-p", test_path + "/"], stderr=subprocess.PIPE)
+		result = subprocess.run(["./main", "-t", str(num_threads), "-p", test_path + "/"], stderr=subprocess.PIPE)
 		if result.stderr:
 			stderr_file.write("/".join(test_path.split('/')[-2:]))
 			stderr_file.write("\n")

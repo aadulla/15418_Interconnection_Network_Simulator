@@ -27,8 +27,6 @@ def extract_aggregate_data(data_file_path):
 
 	return data_dict
 
-
-
 def extract_transmissions_data(data_file_path):
 	data_file = open(data_file_path)
 	data_lines = data_file.readlines()
@@ -59,6 +57,13 @@ def extract_data(data_file_path, data_type):
 
 	data_file.close()
 	return data_lst
+
+# def plot_throughput(stats_df_lst, x_label, y_label):
+# 	throughputs_lst = []
+# 	for stats_df in stats_df_lst:
+# 		throughput_lst = []
+# 		for throupu
+
 
 def plot_time_series(ax, stats_df, rolling_window, x_label, y_label, title, legend):
 	stats_df.rolling(rolling_window).mean().plot(ax=ax)
